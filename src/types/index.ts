@@ -8,6 +8,14 @@ export interface Product {
   created_at: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  created_at: string;
+}
+
 export interface StoreSettings {
   id: number;
   payment_qris_url?: string;

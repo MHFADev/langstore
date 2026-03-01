@@ -78,10 +78,13 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
           .upload(fileName, imageFile, {
             contentType: 'image/webp',
             cacheControl: '3600',
-            upsert: false
+            upsert: true // Hindari error jika file dengan nama sama sudah ada
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError);
+          throw new Error(`Gagal upload gambar: ${uploadError.message}`);
+        }
 
         const { data: { publicUrl } } = supabase.storage
           .from('products')
@@ -98,23 +101,36 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
         category,
       };
 
-      if (product?.id) {
+      // Log data yang akan dikirim untuk debugging
+      console.log('Sending product data:', productData);
+
+      if (product) {
+        // Update
         const { error } = await supabase
           .from('products')
           .update(productData)
           .eq('id', product.id);
-        if (error) throw error;
+
+        if (error) {
+          console.error('Error updating product:', error);
+          throw error;
+        }
       } else {
+        // Create
         const { error } = await supabase
           .from('products')
           .insert([productData]);
-        if (error) throw error;
+
+        if (error) {
+          console.error('Error creating product:', error);
+          throw error;
+        }
       }
 
       onSuccess();
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Failed to save product. Please try again.');
+      console.error('Failed to save product:', error);
+      alert(`Gagal menyimpan produk: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }

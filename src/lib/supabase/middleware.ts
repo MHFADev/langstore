@@ -41,11 +41,12 @@ export async function updateSession(request: NextRequest) {
   // Only fetch user for /admin routes or login page
   const isProtectedPath = request.nextUrl.pathname.startsWith('/admin');
   const isLoginPage = request.nextUrl.pathname.startsWith('/admin/login');
-
-  if (!isProtectedPath && !isLoginPage) {
-    return supabaseResponse;
-  }
-
+  
+  // Important: We must allow Supabase to handle session refreshing (getUser) 
+  // on every request to ensure cookies are updated correctly, 
+  // but we can skip the heavy logic for public assets if needed.
+  // However, `supabase.auth.getUser()` is required to validate the session securely.
+  
   const {
     data: { user },
   } = await supabase.auth.getUser()

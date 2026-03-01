@@ -47,6 +47,16 @@ export function AdminHeader({ userEmail }: AdminHeaderProps) {
               Pesanan
             </Link>
             <Link
+              href="/admin/categories"
+              className={clsx(
+                "transition-colors hover:text-foreground flex items-center gap-2",
+                pathname === "/admin/categories" ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-tags"><path d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19a2.4 2.4 0 0 1-3.4 0L7 12.5" /><path d="m15 5-2.5 2.5" /><path d="M7 12.5V5h7.5" /><circle cx="10" cy="10" r="1" /></svg>
+              Kategori
+            </Link>
+            <Link
               href="/admin/settings/payment"
               className={clsx(
                 "transition-colors hover:text-foreground flex items-center gap-2",
