@@ -77,9 +77,9 @@ export function CheckoutForm({ product, storeSettings }: CheckoutFormProps) {
 
             // Redirect to invoice page
             router.push(`/checkout/success/${orderParams.id}`);
-        } catch (err: any) {
-            console.error('Checkout error:', err);
-            setErrorInput(err.message || 'Terjadi kesalahan saat checkout.');
+        } catch (error) {
+            console.error('Checkout error:', (error as Error).message);
+            setErrorInput((error as Error).message || 'Terjadi kesalahan saat checkout.');
             setIsLoading(false);
         }
     };

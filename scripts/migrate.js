@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * migrate.js - Robust Auto Migration for Supabase
  * Features:
@@ -16,16 +17,25 @@ require('dotenv').config();
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 // Configuration
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
 const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
 async function runSql(sql, client = null) {
   if (client) {
-    return await client.query(sql);
+    try {
+      return await client.query(sql);
+    } catch (e) {
+      console.error(`❌ SQL Error: ${e.message}`);
+      throw e;
+    }
   }
   
   // REST RPC Fallback
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    throw new Error('Missing Supabase credentials (SUPABASE_URL or SERVICE_ROLE_KEY)');
+  }
+
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
     method: 'POST',
     headers: {
@@ -37,8 +47,32 @@ async function runSql(sql, client = null) {
   });
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(`RPC exec_sql failed (${response.status}): ${errorBody.message || JSON.stringify(errorBody)}`);
+    const errorText = await response.text().catch(() => 'Unknown error');
+    let errorMessage = `RPC exec_sql failed (${response.status}): ${errorText}`;
+    
+    if (errorText.includes('function rpc.exec_sql() does not exist') || errorText.includes('404 Not Found')) {
+      errorMessage = `
+❌ REST RPC Migration Failed: The function 'exec_sql' was not found in your Supabase project.
+
+To fix this:
+1. Go to your Supabase Dashboard -> SQL Editor.
+2. Run the following SQL to enable REST migrations:
+
+CREATE OR REPLACE FUNCTION exec_sql(sql text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  EXECUTE sql;
+  RETURN json_build_object('success', true);
+END;
+$$;
+
+3. After running this, re-deploy your app.
+      `;
+    }
+    throw new Error(errorMessage);
   }
   return true;
 }

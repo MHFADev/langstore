@@ -32,7 +32,7 @@ export function OrderList({ initialOrders }: OrderListProps) {
 
             setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
         } catch (err) {
-            console.error('Failed to update status:', err);
+            console.error('Failed to update status:', (err as Error).message);
             alert('Gagal mengupdate status pesanan.');
         }
     };
@@ -61,7 +61,7 @@ export function OrderList({ initialOrders }: OrderListProps) {
             // Open WA Web in new tab
             window.open(waUrl, '_blank');
         } catch (err) {
-            console.error('Error in send WA flow:', err);
+            console.error('Error in send WA flow:', (err as Error).message);
         } finally {
             setIsUpdating(false);
         }

@@ -12,13 +12,13 @@ export function createClient() {
   if (!supabaseUrl || !supabaseAnonKey) {
     if (typeof window === 'undefined') {
       console.warn('Supabase env vars missing during build time');
-      return null as any; // Allow build to continue
+      return null as unknown as SupabaseClient; // Allow build to continue
     }
-    // Return a dummy object or throw a handled error
+  }
 
   client = createBrowserClient(
-    supabaseUrl,
-    supabaseAnonKey
+    supabaseUrl!,
+    supabaseAnonKey!
   )
 
   return client
