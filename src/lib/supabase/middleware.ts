@@ -37,13 +37,22 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
+  // Optimize: Check if we actually need to fetch the user
+  // Only fetch user for /admin routes or login page
+  const isProtectedPath = request.nextUrl.pathname.startsWith('/admin');
+  const isLoginPage = request.nextUrl.pathname.startsWith('/admin/login');
+
+  if (!isProtectedPath && !isLoginPage) {
+    return supabaseResponse;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (
-    request.nextUrl.pathname.startsWith('/admin') &&
-    !request.nextUrl.pathname.startsWith('/admin/login')
+    isProtectedPath &&
+    !isLoginPage
   ) {
     if (!user) {
       const url = request.nextUrl.clone()
@@ -53,7 +62,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect to dashboard if logged in and accessing login page
-  if (request.nextUrl.pathname.startsWith('/admin/login') && user) {
+  if (isLoginPage && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/dashboard'
     return NextResponse.redirect(url)

@@ -39,6 +39,8 @@ export default function LoginPage() {
       setError(errorMessage);
       setLoading(false);
     } else {
+      // Prefetch dashboard page for faster transition
+      router.prefetch('/admin/dashboard');
       router.push('/admin/dashboard');
       router.refresh();
     }
