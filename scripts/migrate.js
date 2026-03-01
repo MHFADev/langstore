@@ -1,221 +1,156 @@
 /**
- * migrate.js - Auto migration script for Supabase
- * Uses Supabase JS client with service_role key to execute SQL.
- * 
- * Usage: npm run db:push
- * 
- * Required env vars in .env.local:
- *   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
- *   SUPABASE_SERVICE_ROLE_KEY=eyJ...  (from Supabase Dashboard > Settings > API > service_role)
+ * migrate.js - Robust Auto Migration for Supabase
+ * Features:
+ * 1.  Direct Postgres support (via DATABASE_URL).
+ * 2.  REST/RPC fallback (via SUPABASE_URL + SERVICE_ROLE_KEY).
+ * 3.  Migrations tracking table (_migrations).
+ * 4.  Support for incremental migrations in `scripts/migrations/*.sql`.
+ * 5.  Idempotent schema execution.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
 const { Client } = require('pg');
+const crypto = require('crypto');
+require('dotenv').config();
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
-async function migrate() {
-  console.log('');
-  console.log('🚀 Lang STR - Supabase Auto Migration');
-  console.log('======================================');
+// Configuration
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DATABASE_URL = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-
-  // --- Read schema file ---
-  const schemaPath = path.join(__dirname, '../src/lib/schema.sql');
-  if (!fs.existsSync(schemaPath)) {
-    console.error(`❌ Error: Schema file not found at ${schemaPath}`);
-    process.exit(1);
+async function runSql(sql, client = null) {
+  if (client) {
+    return await client.query(sql);
   }
-  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
-  console.log('📄 Schema file loaded:', schemaPath);
+  
+  // REST RPC Fallback
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({ sql }),
+  });
 
-  // --- Try Direct Postgres Connection (Recommended) ---
-  if (databaseUrl) {
-    console.log('🔗 Database URL detected. Using direct Postgres connection...');
-    const client = new Client({ connectionString: databaseUrl });
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({ message: 'Unknown error' }));
+    throw new Error(`RPC exec_sql failed (${response.status}): ${errorBody.message || JSON.stringify(errorBody)}`);
+  }
+  return true;
+}
+
+async function getAppliedMigrations(client = null) {
+  const query = "SELECT name FROM _migrations";
+  if (client) {
     try {
-      await client.connect();
-      console.log('✅ Connected to Postgres directly');
-      await client.query(schemaSql);
-      console.log('🎉 Schema executed successfully via direct connection!');
-      await client.end();
-      return;
-    } catch (pgErr) {
-      console.warn('⚠️  Direct Postgres connection failed:', pgErr.message);
-      console.log('🔄 Falling back to Supabase REST API...');
-      if (client) await client.end().catch(() => {});
+      const { rows } = await client.query(query);
+      return rows.map(r => r.name);
+    } catch (e) {
+      if (e.message.includes('relation "_migrations" does not exist')) return [];
+      throw e;
     }
   }
 
-  // --- Fallback to Supabase REST/RPC ---
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.error('❌ Error: Supabase URL or Service Role Key missing and no DATABASE_URL found.');
-    process.exit(1);
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-  console.log('✅ Supabase client initialized');
-
+  // RPC variant for listing migrations
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
       },
-      body: JSON.stringify({ sql: schemaSql }),
+      body: JSON.stringify({ sql: "SELECT name FROM public._migrations" }),
     });
-
+    
     if (response.ok) {
-      console.log('🎉 Schema executed successfully via RPC!');
-      return;
+      const data = await response.json();
+      return Array.isArray(data) ? data.map(r => r.name) : [];
     }
-
-    const body = await response.json().catch(() => ({}));
-    if (body?.message?.includes('function') || response.status === 404) {
-      console.log('⚙️  exec_sql helper not found. Trying individual statement execution...');
-      await runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql);
-    } else {
-      throw new Error(`RPC failed (${response.status}): ${JSON.stringify(body)}`);
-    }
-  } catch (err) {
-    console.error('❌ Migration failed:', err.message);
-    console.log('');
-    console.log('💡 Tips:');
-    console.log('   1. Pastikan exec_sql function sudah ada di Supabase Dashboard SQL Editor.');
-    console.log('   2. ATAU tambahkan DATABASE_URL ke .env.local untuk koneksi langsung yang lebih stabil.');
-    // Don't exit with 1 if it's already partially set up, but for now we keep it strict
-    process.exit(1);
+    return [];
+  } catch (e) {
+    return [];
   }
 }
 
-async function bootstrapAndRun(supabaseUrl, serviceRoleKey, schemaSql) {
-  // First, create the exec_sql helper function using the Management API
-  const bootstrapSql = `
-    CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
-    RETURNS void
-    LANGUAGE plpgsql
-    SECURITY DEFINER
-    AS $$
-    BEGIN
-      EXECUTE sql;
-    END;
-    $$;
-  `;
+async function main() {
+  console.log('🚀 Supabase Migration Engine starting...');
+  console.log('----------------------------------------');
 
-  // Use pg REST endpoint to create the function
-  const createFnResponse = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
-    body: JSON.stringify({ sql: bootstrapSql }),
-  });
-
-  // Even if bootstrap fails, try the direct approach via pg endpoint
-  // Supabase exposes a /pg endpoint for service role access in some versions
-  const pgResponse = await fetch(`${supabaseUrl}/pg`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
-    body: JSON.stringify({ query: schemaSql }),
-  });
-
-  if (pgResponse.ok) {
-    console.log('🎉 Schema executed via /pg endpoint!');
-    printSuccess();
-    return;
+  let client = null;
+  if (DATABASE_URL) {
+    console.log('🔗 Connecting to direct Postgres...');
+    client = new Client({ connectionString: DATABASE_URL });
+    await client.connect();
+    console.log('✅ Connected.');
+  } else {
+    console.log('🔄 No direct DB URL, using REST API fallback.');
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      console.warn('⚠️  Warning: Missing Supabase credentials. Skipping database migration during build.');
+      console.log('   Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in your environment.');
+      return; // Exit gracefully
+    }
   }
 
-  // Last resort: Use Supabase Management API (requires management token)
-  // This is the most reliable method — execute SQL via the query endpoint
-  const projectRef = supabaseUrl.replace('https://', '').split('.')[0];
+  try {
+    // 1. Ensure migrations table exists
+    await runSql(`
+      CREATE TABLE IF NOT EXISTS _migrations (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        applied_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+      );
+    `, client);
 
-  console.log(`   Project ref detected: ${projectRef}`);
-  console.log('   Attempting Management API...');
+    const applied = await getAppliedMigrations(client);
+    
+    // 2. Process schema.sql as "initial_schema"
+    const schemaPath = path.join(__dirname, '../src/lib/schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+      const hash = crypto.createHash('md5').update(schemaSql).digest('hex');
+      const migrationName = `schema_v_${hash.substring(0, 8)}`;
 
-  // Try running statements individually by splitting on semicolons—safe fallback
-  await runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql, projectRef);
-}
-
-async function runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql) {
-  const statements = splitSqlStatements(schemaSql);
-  console.log(`   Executing ${statements.length} statements individually...`);
-  console.log('   ⚠️  NOTE: Individual statement execution via REST still requires "exec_sql" function.');
-  console.log('   Please run the SQL once in Supabase SQL Editor to bootstrap the system.');
-  
-  throw new Error('exec_sql function missing. Manual setup required once.');
-}
-
-function splitSqlStatements(sql) {
-  // Naive but reasonable: split on semicolons outside of dollar-quoted blocks
-  const statements = [];
-  let current = '';
-  let inDollarQuote = false;
-  let dollarTag = '';
-
-  const lines = sql.split('\n');
-  for (const line of lines) {
-    // Skip comment lines
-    if (line.trim().startsWith('--')) {
-      continue;
+      if (!applied.includes(migrationName)) {
+        console.log(`📄 Applying updated schema.sql (${migrationName})...`);
+        await runSql(schemaSql, client);
+        await runSql(`INSERT INTO _migrations (name) VALUES ('${migrationName}')`, client);
+        console.log('🎉 Schema applied.');
+      } else {
+        console.log('⏭️  Schema.sql unchanged. Skipping.');
+      }
     }
 
-    // Detect $$ blocks
-    const dollarMatches = line.match(/\$\$/g);
-    if (dollarMatches) {
-      for (const match of dollarMatches) {
-        if (!inDollarQuote) {
-          inDollarQuote = true;
-          dollarTag = match;
-        } else if (match === dollarTag) {
-          inDollarQuote = false;
-          dollarTag = '';
+    // 3. Process incremental migrations in scripts/migrations/
+    const migrationDir = path.join(__dirname, 'migrations');
+    if (fs.existsSync(migrationDir)) {
+      const files = fs.readdirSync(migrationDir)
+        .filter(f => f.endsWith('.sql'))
+        .sort();
+
+      for (const file of files) {
+        if (!applied.includes(file)) {
+          console.log(`📦 Applying incremental migration: ${file}...`);
+          const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
+          await runSql(sql, client);
+          await runSql(`INSERT INTO _migrations (name) VALUES ('${file}')`, client);
+          console.log(`✅ ${file} applied.`);
         }
       }
     }
 
-    current += line + '\n';
-
-    if (!inDollarQuote && line.trim().endsWith(';')) {
-      const stmt = current.trim().replace(/;$/, '');
-      if (stmt) statements.push(stmt);
-      current = '';
-    }
+    console.log('----------------------------------------');
+    console.log('✨ All migrations are up to date!');
+  } catch (error) {
+    console.error('❌ Migration error:', error.message);
+    process.exit(1);
+  } finally {
+    if (client) await client.end();
   }
-
-  if (current.trim()) {
-    statements.push(current.trim());
-  }
-
-  return statements;
 }
 
-function printSuccess() {
-  console.log('');
-  console.log('✅ Tables created (if not existed):');
-  console.log('   - public.profiles');
-  console.log('   - public.categories (with default data)');
-  console.log('   - public.products');
-  console.log('   - public.orders');
-  console.log('   - public.order_items');
-  console.log('');
-  console.log('✅ RLS Policies applied');
-  console.log('✅ Triggers set up');
-  console.log('');
-  console.log('⚠️  Storage bucket "products" must be created manually:');
-  console.log('   Supabase Dashboard → Storage → New Bucket → name: "products" → Public: ON');
-  console.log('');
-}
-
-migrate();
+main();

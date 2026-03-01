@@ -10,11 +10,11 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    if (typeof window === 'undefined') {
+      console.warn('Supabase env vars missing during build time');
+      return null as any; // Allow build to continue
+    }
     // Return a dummy object or throw a handled error
-    // Throwing error here might crash client components, so we log and throw
-    console.error('Supabase env vars missing');
-    throw new Error('Konfigurasi aplikasi belum lengkap.');
-  }
 
   client = createBrowserClient(
     supabaseUrl,
