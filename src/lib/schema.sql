@@ -185,9 +185,27 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   payment_dana_number TEXT,
   payment_gopay_number TEXT,
   whatsapp_number_admin TEXT,
+  favicon_url TEXT,
+  site_title TEXT,
+  site_description TEXT,
+  site_meta_image TEXT,
+  site_keywords TEXT,
+  google_analytics_id TEXT,
+  google_search_console_id TEXT,
+  canonical_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Ensure columns exist if table was already created
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS favicon_url TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS site_title TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS site_description TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS site_meta_image TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS site_keywords TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS google_analytics_id TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS google_search_console_id TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS canonical_url TEXT;
 
 -- Seed initial settings row
 INSERT INTO public.store_settings (id) 
@@ -205,5 +223,35 @@ DO $$ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='store_settings' AND policyname='Admins can insert store settings') THEN
     CREATE POLICY "Admins can insert store settings" ON public.store_settings FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+  END IF;
+END $$;
+
+-- ==========================================
+-- 7. STORAGE BUCKETS (Setup)
+-- ==========================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('products', 'products', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('settings', 'settings', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Policies for public storage access
+DO $$ BEGIN
+  -- Products bucket
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Public Access for Products') THEN
+    CREATE POLICY "Public Access for Products" ON storage.objects FOR SELECT USING (bucket_id = 'products');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Admin Access for Products') THEN
+    CREATE POLICY "Admin Access for Products" ON storage.objects FOR ALL USING (bucket_id = 'products' AND auth.role() = 'authenticated');
+  END IF;
+
+  -- Settings bucket
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Public Access for Settings') THEN
+    CREATE POLICY "Public Access for Settings" ON storage.objects FOR SELECT USING (bucket_id = 'settings');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Admin Access for Settings') THEN
+    CREATE POLICY "Admin Access for Settings" ON storage.objects FOR ALL USING (bucket_id = 'settings' AND auth.role() = 'authenticated');
   END IF;
 END $$;

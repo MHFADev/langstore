@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const { Client } = require('pg');
 require('dotenv').config({ path: path.join(__dirname, '../.env.local') });
 
 async function migrate() {
@@ -21,63 +22,45 @@ async function migrate() {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  // --- Validate env vars ---
-  if (!supabaseUrl) {
-    console.error('❌ Error: NEXT_PUBLIC_SUPABASE_URL is missing in .env.local');
-    process.exit(1);
-  }
-
-  if (!serviceRoleKey || serviceRoleKey.includes('your-service-role-key')) {
-    console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY is missing or not set in .env.local');
-    console.log('');
-    console.log('💡 Cara mendapatkan Service Role Key:');
-    console.log('   1. Buka https://supabase.com/dashboard');
-    console.log('   2. Pilih project kamu');
-    console.log('   3. Klik Settings → API');
-    console.log('   4. Copy "service_role" key (bukan anon key!)');
-    console.log('   5. Tambahkan ke .env.local:');
-    console.log('      SUPABASE_SERVICE_ROLE_KEY=eyJ...');
-    console.log('');
-    process.exit(1);
-  }
-
-  // --- Create Supabase admin client ---
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  console.log('✅ Supabase client initialized');
-  console.log(`   URL: ${supabaseUrl}`);
-  console.log('');
+  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
   // --- Read schema file ---
   const schemaPath = path.join(__dirname, '../src/lib/schema.sql');
-
   if (!fs.existsSync(schemaPath)) {
     console.error(`❌ Error: Schema file not found at ${schemaPath}`);
     process.exit(1);
   }
-
   const schemaSql = fs.readFileSync(schemaPath, 'utf8');
   console.log('📄 Schema file loaded:', schemaPath);
 
-  // --- Split SQL into individual statements and execute ---
-  // Supabase REST API does not support multi-statement SQL directly,
-  // so we use exec via rpc if available, otherwise we use the Postgres function approach.
-  // The most reliable method for running raw SQL with service_role is via the REST /rest/v1/rpc endpoint.
-  // We create a helper function first, then use it.
+  // --- Try Direct Postgres Connection (Recommended) ---
+  if (databaseUrl) {
+    console.log('🔗 Database URL detected. Using direct Postgres connection...');
+    const client = new Client({ connectionString: databaseUrl });
+    try {
+      await client.connect();
+      console.log('✅ Connected to Postgres directly');
+      await client.query(schemaSql);
+      console.log('🎉 Schema executed successfully via direct connection!');
+      await client.end();
+      return;
+    } catch (pgErr) {
+      console.warn('⚠️  Direct Postgres connection failed:', pgErr.message);
+      console.log('🔄 Falling back to Supabase REST API...');
+      if (client) await client.end().catch(() => {});
+    }
+  }
 
-  console.log('');
-  console.log('🔄 Executing SQL schema...');
-  console.log('');
+  // --- Fallback to Supabase REST/RPC ---
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('❌ Error: Supabase URL or Service Role Key missing and no DATABASE_URL found.');
+    process.exit(1);
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  console.log('✅ Supabase client initialized');
 
   try {
-    // Execute via Supabase's built-in pg.sql execution using fetch directly
-    // This uses the service_role key to hit the Postgres REST wrapper
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
       method: 'POST',
       headers: {
@@ -88,40 +71,26 @@ async function migrate() {
       body: JSON.stringify({ sql: schemaSql }),
     });
 
-    if (!response.ok) {
-      // exec_sql doesn't exist yet — bootstrap it first
-      const body = await response.json();
+    if (response.ok) {
+      console.log('🎉 Schema executed successfully via RPC!');
+      return;
+    }
 
-      if (
-        body?.message?.includes('function') ||
-        body?.code === 'PGRST202' ||
-        response.status === 404
-      ) {
-        console.log('⚙️  exec_sql helper not found. Bootstrapping...');
-        await bootstrapAndRun(supabaseUrl, serviceRoleKey, schemaSql);
-      } else {
-        throw new Error(`RPC failed (${response.status}): ${JSON.stringify(body)}`);
-      }
+    const body = await response.json().catch(() => ({}));
+    if (body?.message?.includes('function') || response.status === 404) {
+      console.log('⚙️  exec_sql helper not found. Trying individual statement execution...');
+      await runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql);
     } else {
-      console.log('🎉 Schema executed successfully!');
-      printSuccess();
+      throw new Error(`RPC failed (${response.status}): ${JSON.stringify(body)}`);
     }
   } catch (err) {
-    if (err.message.includes('bootstrapAndRun')) throw err;
-
-    // Fallback: try bootstrap
-    console.log('⚙️  Trying bootstrap approach...');
-    try {
-      await bootstrapAndRun(supabaseUrl, serviceRoleKey, schemaSql);
-    } catch (e2) {
-      console.error('');
-      console.error('❌ Migration failed:', e2.message);
-      console.error('');
-      console.log('💡 Jika masih gagal, jalankan SQL manual di Supabase Dashboard:');
-      console.log('   https://supabase.com/dashboard/project/' + supabaseUrl.split('.')[0].replace('https://', '') + '/sql');
-      console.log('   Paste isi file: src/lib/schema.sql');
-      process.exit(1);
-    }
+    console.error('❌ Migration failed:', err.message);
+    console.log('');
+    console.log('💡 Tips:');
+    console.log('   1. Pastikan exec_sql function sudah ada di Supabase Dashboard SQL Editor.');
+    console.log('   2. ATAU tambahkan DATABASE_URL ke .env.local untuk koneksi langsung yang lebih stabil.');
+    // Don't exit with 1 if it's already partially set up, but for now we keep it strict
+    process.exit(1);
   }
 }
 
@@ -179,55 +148,13 @@ async function bootstrapAndRun(supabaseUrl, serviceRoleKey, schemaSql) {
   await runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql, projectRef);
 }
 
-async function runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql, projectRef) {
-  // Split by semicolons (rough split — handles most cases)
-  // This is a last resort when no exec_sql or /pg endpoint is available.
+async function runStatementsFallback(supabaseUrl, serviceRoleKey, schemaSql) {
   const statements = splitSqlStatements(schemaSql);
-
   console.log(`   Executing ${statements.length} statements individually...`);
-  let successCount = 0;
-  let errorCount = 0;
-
-  for (let i = 0; i < statements.length; i++) {
-    const stmt = statements[i].trim();
-    if (!stmt) continue;
-
-    try {
-      const res = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: serviceRoleKey,
-          Authorization: `Bearer ${serviceRoleKey}`,
-        },
-        body: JSON.stringify({ sql: stmt + ';' }),
-      });
-
-      if (res.ok) {
-        successCount++;
-      } else {
-        const body = await res.json().catch(() => ({}));
-        console.warn(`   ⚠️  Statement ${i + 1} warning: ${body?.message || 'Unknown error'}`);
-        errorCount++;
-      }
-    } catch (e) {
-      console.warn(`   ⚠️  Statement ${i + 1} error: ${e.message}`);
-      errorCount++;
-    }
-  }
-
-  if (errorCount === 0) {
-    console.log('🎉 All statements executed successfully!');
-    printSuccess();
-  } else if (successCount > 0) {
-    console.log(`✅ Migration partially complete: ${successCount} ok, ${errorCount} warnings.`);
-    console.log('   Some statements may have been skipped (already exist) — this is usually fine.');
-    printSuccess();
-  } else {
-    throw new Error(
-      `exec_sql function is not available. Please run the SQL manually in the Supabase Dashboard SQL Editor.`
-    );
-  }
+  console.log('   ⚠️  NOTE: Individual statement execution via REST still requires "exec_sql" function.');
+  console.log('   Please run the SQL once in Supabase SQL Editor to bootstrap the system.');
+  
+  throw new Error('exec_sql function missing. Manual setup required once.');
 }
 
 function splitSqlStatements(sql) {

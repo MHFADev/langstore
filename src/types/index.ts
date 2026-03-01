@@ -25,6 +25,14 @@ export interface StoreSettings {
   payment_dana_number?: string;
   payment_gopay_number?: string;
   whatsapp_number_admin?: string;
+  favicon_url?: string;
+  site_title?: string;
+  site_description?: string;
+  site_meta_image?: string;
+  site_keywords?: string;
+  google_analytics_id?: string;
+  google_search_console_id?: string;
+  canonical_url?: string;
 }
 
 export interface Order {
