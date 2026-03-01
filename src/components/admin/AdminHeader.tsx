@@ -4,7 +4,8 @@ import { SignOutButton } from '@/components/admin/SignOutButton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { Settings, LayoutDashboard, Globe } from 'lucide-react';
+import { Settings, LayoutDashboard, Globe, Menu, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface AdminHeaderProps {
   userEmail?: string;
@@ -12,6 +13,16 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ userEmail }: AdminHeaderProps) {
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const navLinks = [
+    { href: "/admin/dashboard", label: "Produk", icon: LayoutDashboard },
+    { href: "/admin/orders", label: "Pesanan", icon: ({ className }: { className?: string }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={clsx("lucide lucide-shopping-bag", className)}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
+    )},
+    { href: "/admin/seo", label: "SEO", icon: Globe, iconColor: "text-blue-500" },
+    { href: "/admin/settings/payment", label: "Pengaturan", icon: Settings, active: pathname.startsWith("/admin/settings") },
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,55 +37,64 @@ export function AdminHeader({ userEmail }: AdminHeaderProps) {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-4 text-sm font-medium">
-            <Link
-              href="/admin/dashboard"
-              className={clsx(
-                "transition-colors hover:text-foreground flex items-center gap-2",
-                pathname === "/admin/dashboard" ? "text-foreground" : "text-muted-foreground"
-              )}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Produk
-            </Link>
-            <Link
-              href="/admin/orders"
-              className={clsx(
-                "transition-colors hover:text-foreground flex items-center gap-2",
-                pathname === "/admin/orders" ? "text-foreground" : "text-muted-foreground"
-              )}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-shopping-bag"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
-              Pesanan
-            </Link>
-            <Link
-              href="/admin/seo"
-              className={clsx(
-                "transition-colors hover:text-foreground flex items-center gap-2",
-                pathname === "/admin/seo" ? "text-foreground" : "text-muted-foreground"
-              )}
-            >
-              <Globe className="h-4 w-4 text-blue-500" />
-              SEO
-            </Link>
-            <Link
-              href="/admin/settings/payment"
-              className={clsx(
-                "transition-colors hover:text-foreground flex items-center gap-2",
-                pathname.startsWith("/admin/settings") ? "text-foreground" : "text-muted-foreground"
-              )}
-            >
-              <Settings className="h-4 w-4" />
-              Pengaturan
-            </Link>
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={clsx(
+                  "transition-colors hover:text-foreground flex items-center gap-2",
+                  (link.active ?? pathname === link.href) ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                <link.icon className={clsx("h-4 w-4", link.iconColor)} />
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground hidden md:inline-block">
+        <div className="flex items-center gap-2 md:gap-4">
+          <span className="text-sm text-muted-foreground hidden lg:inline-block">
             {userEmail}
           </span>
-          <SignOutButton />
+          <div className="hidden md:block">
+            <SignOutButton />
+          </div>
+          <button 
+            className="md:hidden p-2 text-foreground"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Navigation */}
+      {isMenuOpen && (
+        <div className="md:hidden border-b bg-background animate-in slide-in-from-top duration-200">
+          <nav className="flex flex-col p-4 gap-4">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsMenuOpen(false)}
+                className={clsx(
+                  "transition-colors hover:text-foreground flex items-center gap-3 py-2 text-sm font-medium border-b border-muted last:border-0",
+                  (link.active ?? pathname === link.href) ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                <link.icon className={clsx("h-5 w-5", link.iconColor)} />
+                {link.label}
+              </Link>
+            ))}
+            <div className="pt-2 flex items-center justify-between">
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+                {userEmail}
+              </span>
+              <SignOutButton />
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

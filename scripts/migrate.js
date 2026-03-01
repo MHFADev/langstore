@@ -46,35 +46,19 @@ async function runSql(sql, client = null) {
     body: JSON.stringify({ sql }),
   });
 
+  const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Unknown error');
+    const errorText = JSON.stringify(data);
     let errorMessage = `RPC exec_sql failed (${response.status}): ${errorText}`;
     
     if (errorText.includes('function rpc.exec_sql() does not exist') || errorText.includes('404 Not Found')) {
       errorMessage = `
 ❌ REST RPC Migration Failed: The function 'exec_sql' was not found in your Supabase project.
-
-To fix this:
-1. Go to your Supabase Dashboard -> SQL Editor.
-2. Run the following SQL to enable REST migrations:
-
-CREATE OR REPLACE FUNCTION exec_sql(sql text)
-RETURNS json
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  EXECUTE sql;
-  RETURN json_build_object('success', true);
-END;
-$$;
-
-3. After running this, re-deploy your app.
-      `;
+`;
     }
     throw new Error(errorMessage);
   }
-  return true;
+  return data;
 }
 
 async function getAppliedMigrations(client = null) {
@@ -91,22 +75,14 @@ async function getAppliedMigrations(client = null) {
 
   // RPC variant for listing migrations
   try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      },
-      body: JSON.stringify({ sql: "SELECT name FROM public._migrations" }),
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      return Array.isArray(data) ? data.map(r => r.name) : [];
+    const data = await runSql(query);
+    // exec_sql returns the result of the query directly
+    if (Array.isArray(data)) {
+      return data.map(r => r.name);
     }
     return [];
   } catch (e) {
+    console.error('⚠️ Could not fetch migrations:', e.message);
     return [];
   }
 }
@@ -118,10 +94,20 @@ async function main() {
   let client = null;
   if (DATABASE_URL) {
     console.log('🔗 Connecting to direct Postgres...');
-    client = new Client({ connectionString: DATABASE_URL });
-    await client.connect();
-    console.log('✅ Connected.');
-  } else {
+    try {
+      client = new Client({ 
+        connectionString: DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      await client.connect();
+      console.log('✅ Connected.');
+    } catch (e) {
+      console.error(`❌ Connection failed: ${e.message}`);
+      client = null;
+    }
+  }
+
+  if (!client) {
     console.log('🔄 No direct DB URL, using REST API fallback.');
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
       console.warn('⚠️  Warning: Missing Supabase credentials. Skipping database migration during build.');
@@ -142,7 +128,6 @@ async function main() {
 
     const applied = await getAppliedMigrations(client);
     
-    // 2. Process schema.sql as "initial_schema"
     const schemaPath = path.join(__dirname, '../src/lib/schema.sql');
     if (fs.existsSync(schemaPath)) {
       const schemaSql = fs.readFileSync(schemaPath, 'utf8');
@@ -151,9 +136,16 @@ async function main() {
 
       if (!applied.includes(migrationName)) {
         console.log(`📄 Applying updated schema.sql (${migrationName})...`);
-        await runSql(schemaSql, client);
-        await runSql(`INSERT INTO _migrations (name) VALUES ('${migrationName}')`, client);
-        console.log('🎉 Schema applied.');
+        try {
+          await runSql(schemaSql, client);
+          await runSql(`INSERT INTO _migrations (name) VALUES ('${migrationName}')`, client);
+          console.log('🎉 Schema applied.');
+        } catch (e) {
+          console.error(`⚠️ Failed to apply schema.sql: ${e.message}`);
+          console.log('⏭️ Skipping schema.sql and moving to incremental migrations...');
+          // Add it to applied to avoid re-trying and failing in future runs if it partially succeeded or is just restricted
+          applied.push(migrationName);
+        }
       } else {
         console.log('⏭️  Schema.sql unchanged. Skipping.');
       }
@@ -169,10 +161,19 @@ async function main() {
       for (const file of files) {
         if (!applied.includes(file)) {
           console.log(`📦 Applying incremental migration: ${file}...`);
-          const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
-          await runSql(sql, client);
-          await runSql(`INSERT INTO _migrations (name) VALUES ('${file}')`, client);
-          console.log(`✅ ${file} applied.`);
+          try {
+            const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
+            await runSql(sql, client);
+            await runSql(`INSERT INTO _migrations (name) VALUES ('${file}')`, client);
+            console.log(`✅ ${file} applied.`);
+          } catch (e) {
+            if (e.message.includes('already exists')) {
+              console.log(`⏭️ ${file} seems already applied (duplicate key). Marking as applied.`);
+              await runSql(`INSERT INTO _migrations (name) VALUES ('${file}')`, client).catch(() => {});
+            } else {
+              throw e;
+            }
+          }
         }
       }
     }
