@@ -37,31 +37,10 @@ export default async function Home() {
 
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-background pt-24 pb-20 md:pt-36 md:pb-32">
-        {/* Custom Banner Background if Active */}
-        {showCustomBanner && settings?.banner_url && (
-          <div className="absolute inset-0 z-0 select-none pointer-events-none">
-             {/* Gradient Overlay for Readability */}
-             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 to-background/50 z-10"></div>
-             <div className="absolute inset-0 bg-black/40 z-10"></div>
-             
-             {/* The Banner Image */}
-             <Image 
-               src={settings.banner_url} 
-               alt={settings.banner_title || 'Hero Banner'} 
-               fill 
-               className="object-cover blur-[1px]"
-               priority
-               quality={90}
-             />
-          </div>
-        )}
-
-        {/* Background Gradients (Default) */}
-        {!showCustomBanner && (
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-30 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-transparent blur-[100px] rounded-full mix-blend-multiply"></div>
-          </div>
-        )}
+        {/* Standard Background Effects (Always Visible) */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-30 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-transparent blur-[100px] rounded-full mix-blend-multiply"></div>
+        </div>
 
         {/* Floating Elements */}
         <div className="absolute top-20 left-[15%] text-primary/20 animate-pulse hidden md:block z-10">
@@ -97,6 +76,22 @@ export default async function Home() {
               Eksplorasi Katalog
             </a>
           </div>
+
+          {/* New Banner Position: Below Title & CTA */}
+          {showCustomBanner && settings?.banner_url && (
+             <div className="mt-16 mx-auto max-w-5xl rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 relative aspect-[16/9] md:aspect-[2.5/1] animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <Image 
+                  src={settings.banner_url} 
+                  alt={settings.banner_title || 'Hero Banner'} 
+                  fill 
+                  className="object-cover hover:scale-105 transition-transform duration-700"
+                  priority
+                  quality={95}
+                />
+                {/* Optional: Subtle gradient overlay on banner itself */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+             </div>
+          )}
 
           <div className="mt-16 pt-8 border-t border-border/50 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 animate-in fade-in duration-1000 delay-500">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
