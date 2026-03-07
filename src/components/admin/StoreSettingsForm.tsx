@@ -122,16 +122,20 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         try {
             const { error } = await supabase
                 .from('store_settings')
-                .upsert({ ...formData, id: 1, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                .upsert({
+                    id: 1,
+                    ...formData,
+                    updated_at: new Date().toISOString(),
+                });
 
             if (error) throw error;
-
-            setMessage({ type: 'success', text: 'Pengaturan toko berhasil disimpan.' });
+            setMessage({ type: 'success', text: 'Pengaturan berhasil disimpan!' });
             
-            // Refresh metadata by reloading or custom event
-            window.location.reload(); 
+            // Revalidate path to update UI
+            await fetch('/api/revalidate?path=/', { method: 'POST' });
+            
         } catch (err: unknown) {
-            console.error('Error updating store settings:', err);
+            console.error('Save error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Gagal menyimpan pengaturan.';
             setMessage({ type: 'error', text: errorMessage });
         } finally {
