@@ -269,6 +269,23 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                                     URL: <a href={formData.banner_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{formData.banner_url}</a>
                                 </div>
                             )}
+
+                            <div className="space-y-2 mt-4">
+                                <label className="text-sm font-medium">Atau Gunakan URL Gambar</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="url"
+                                        name="banner_url"
+                                        value={formData.banner_url || ''}
+                                        onChange={handleChange}
+                                        placeholder="https://example.com/banner.jpg"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Masukkan link langsung gambar jika Anda tidak ingin mengunggah file.
+                                </p>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
