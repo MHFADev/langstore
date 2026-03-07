@@ -1,17 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/layout/Header';
 import { ProductGrid } from '@/components/ui/ProductGrid';
-import { Product } from '@/types';
+import { Product, StoreSettings } from '@/types';
 import { Sparkles, Gamepad2, ShieldCheck, Zap } from 'lucide-react';
+import Image from 'next/image';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function Home() {
   const supabase = await createClient();
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false });
+  
+  const [productsResult, settingsResult] = await Promise.all([
+    supabase.from('products').select('*').order('created_at', { ascending: false }),
+    supabase.from('store_settings').select('*').single()
+  ]);
+
+  const products = productsResult.data;
+  const error = productsResult.error;
+  const settings = settingsResult.data as StoreSettings | null;
 
   if (error) {
     console.error('Error fetching products (Home):', JSON.stringify(error, null, 2));
@@ -23,38 +29,62 @@ export default async function Home() {
     category: p.category || 'Game Account' // Default fallback
   })) || [];
 
+  const showCustomBanner = settings?.banner_active && settings?.banner_url;
+
   return (
     <div className="flex min-h-screen flex-col bg-background selection:bg-primary/20">
       <Header />
 
-      {/* Immersive Hero Section */}
+      {/* Hero Section */}
       <div className="relative overflow-hidden bg-background pt-24 pb-20 md:pt-36 md:pb-32">
-        {/* Background Gradients */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-30 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-transparent blur-[100px] rounded-full mix-blend-multiply"></div>
-        </div>
+        {/* Custom Banner Background if Active */}
+        {showCustomBanner && settings?.banner_url && (
+          <div className="absolute inset-0 z-0">
+             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40 z-10"></div>
+             <Image 
+               src={settings.banner_url} 
+               alt={settings.banner_title || 'Hero Banner'} 
+               fill 
+               className="object-cover opacity-40 blur-[2px] scale-105"
+               priority
+             />
+          </div>
+        )}
+
+        {/* Background Gradients (Default) */}
+        {!showCustomBanner && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] opacity-30 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/30 to-transparent blur-[100px] rounded-full mix-blend-multiply"></div>
+          </div>
+        )}
 
         {/* Floating Elements */}
-        <div className="absolute top-20 left-[15%] text-primary/20 animate-pulse hidden md:block">
+        <div className="absolute top-20 left-[15%] text-primary/20 animate-pulse hidden md:block z-10">
           <Gamepad2 className="w-16 h-16 rotate-12" />
         </div>
-        <div className="absolute bottom-20 right-[15%] text-accent-foreground/20 animate-bounce hidden md:block" style={{ animationDuration: '3s' }}>
+        <div className="absolute bottom-20 right-[15%] text-accent-foreground/20 animate-bounce hidden md:block z-10" style={{ animationDuration: '3s' }}>
           <Sparkles className="w-12 h-12 -rotate-12" />
         </div>
 
-        <div className="container relative mx-auto px-4 md:px-8 text-center z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="container relative mx-auto px-4 md:px-8 text-center z-20">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8 animate-in fade-in slide-in-from-bottom-2 duration-500 backdrop-blur-sm">
             <Zap className="w-4 h-4" />
             <span>Instant Delivery & Auto Confirm</span>
           </div>
 
-          <h1 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl font-[family-name:var(--font-space-grotesk)] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            Digital Store <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent-foreground">Premium</span> <br />
-            Kebutuhan Gaming Anda
+          <h1 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl font-[family-name:var(--font-space-grotesk)] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 drop-shadow-sm">
+            {settings?.banner_title ? (
+              settings.banner_title
+            ) : (
+              <>
+                Digital Store <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent-foreground">Premium</span> <br />
+                Kebutuhan Gaming Anda
+              </>
+            )}
           </h1>
 
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed mb-10 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-150">
-            Temukan Akun Game Sultan, Top Up Termurah, Jasa Joki Terpercaya, dan Aplikasi Premium legal dengan proses instan.
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed mb-10 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-150 drop-shadow-sm">
+            {settings?.banner_description || "Temukan Akun Game Sultan, Top Up Termurah, Jasa Joki Terpercaya, dan Aplikasi Premium legal dengan proses instan."}
           </p>
 
           <div className="flex justify-center gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">

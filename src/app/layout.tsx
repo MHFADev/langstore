@@ -90,10 +90,10 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
     },
     verification: {
-      google: settings?.google_search_console_id,
+      google: settings?.google_search_console_id || "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
     },
     other: {
-      'google-site-verification': settings?.google_search_console_id || '',
+      'google-site-verification': settings?.google_search_console_id || "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
     }
   };
 }

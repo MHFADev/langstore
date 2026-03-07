@@ -193,6 +193,10 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   google_analytics_id TEXT,
   google_search_console_id TEXT,
   canonical_url TEXT,
+  banner_url TEXT,
+  banner_title TEXT,
+  banner_description TEXT,
+  banner_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -206,6 +210,10 @@ ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS site_keywords TEXT;
 ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS google_analytics_id TEXT;
 ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS google_search_console_id TEXT;
 ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS canonical_url TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS banner_url TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS banner_title TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS banner_description TEXT;
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS banner_active BOOLEAN DEFAULT true;
 
 -- Seed initial settings row
 INSERT INTO public.store_settings (id) 

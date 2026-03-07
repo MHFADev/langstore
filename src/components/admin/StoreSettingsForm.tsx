@@ -28,14 +28,19 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         google_analytics_id: initialSettings?.google_analytics_id || '',
         google_search_console_id: initialSettings?.google_search_console_id || '',
         canonical_url: initialSettings?.canonical_url || '',
+        banner_url: initialSettings?.banner_url || '',
+        banner_title: initialSettings?.banner_title || '',
+        banner_description: initialSettings?.banner_description || '',
+        banner_active: initialSettings?.banner_active ?? true,
     });
 
     const [isLoading, setIsLoading] = useState(false);
-    const [isUploading, setIsUploading] = useState<{ favicon: boolean; metaImage: boolean }>({ favicon: false, metaImage: false });
+    const [isUploading, setIsUploading] = useState<{ favicon: boolean; metaImage: boolean; banner: boolean }>({ favicon: false, metaImage: false, banner: false });
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     const faviconInputRef = useRef<HTMLInputElement>(null);
     const metaImageInputRef = useRef<HTMLInputElement>(null);
+    const bannerInputRef = useRef<HTMLInputElement>(null);
 
     const supabase = createClient();
 
@@ -44,7 +49,11 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'favicon' | 'metaImage') => {
+    const handleToggle = (name: string, checked: boolean) => {
+        setFormData((prev) => ({ ...prev, [name]: checked }));
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'favicon' | 'metaImage' | 'banner') => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -63,7 +72,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
             if (!file.type.includes('svg') && !file.type.includes('icon')) {
                 const options = {
                     maxSizeMB: isFavicon ? 0.1 : 1,
-                    maxWidthOrHeight: isFavicon ? 180 : 1200,
+                    maxWidthOrHeight: isFavicon ? 180 : type === 'banner' ? 1920 : 1200,
                     useWebWorker: true,
                 };
                 fileToUpload = await imageCompression(file, options);
@@ -84,12 +93,18 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
             // Tambahkan cache busting
             const finalUrl = `${publicUrl}?v=${Date.now()}`;
 
+            const fieldMap = {
+                favicon: 'favicon_url',
+                metaImage: 'site_meta_image',
+                banner: 'banner_url'
+            };
+
             setFormData((prev) => ({
                 ...prev,
-                [isFavicon ? 'favicon_url' : 'site_meta_image']: finalUrl,
+                [fieldMap[type]]: finalUrl,
             }));
 
-            setMessage({ type: 'success', text: `${isFavicon ? 'Favicon' : 'Meta image'} berhasil diunggah.` });
+            setMessage({ type: 'success', text: `${type === 'banner' ? 'Banner' : isFavicon ? 'Favicon' : 'Meta image'} berhasil diunggah.` });
         } catch (err: unknown) {
             console.error('Upload error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Gagal mengunggah file.';
@@ -184,6 +199,108 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                         />
                         <p className="text-xs text-muted-foreground">Pisahkan dengan koma.</p>
                     </div>
+                </div>
+            </div>
+
+            {/* Banner Settings Section */}
+            <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
+                <div className="p-4 border-b bg-muted/30 flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold">Banner Beranda (Hero Section)</h3>
+                </div>
+                <div className="p-6 space-y-6">
+                    <div className="flex items-center gap-4 border-b pb-6">
+                        <div className="flex items-center space-x-2">
+                            <input 
+                                type="checkbox" 
+                                id="banner_active"
+                                checked={formData.banner_active}
+                                onChange={(e) => handleToggle('banner_active', e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="banner_active" className="text-sm font-medium">Aktifkan Banner Custom</label>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Jika dinonaktifkan, akan menggunakan tampilan default.
+                        </p>
+                    </div>
+
+                    {formData.banner_active && (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="space-y-4">
+                                <label className="text-sm font-medium">Gambar Banner</label>
+                                <div className="relative w-full aspect-[21/9] border-2 border-dashed rounded-xl flex items-center justify-center bg-muted/20 overflow-hidden group">
+                                    {formData.banner_url ? (
+                                        <>
+                                            <img src={formData.banner_url} alt="Banner Preview" className="w-full h-full object-cover" />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => bannerInputRef.current?.click()}
+                                                    className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors"
+                                                >
+                                                    Ganti Gambar
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center p-6">
+                                            <ImageIcon className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2" />
+                                            <p className="text-sm text-muted-foreground">Klik untuk unggah banner</p>
+                                            <p className="text-xs text-muted-foreground mt-1">Rekomendasi: 1920x800 px (JPG/WEBP)</p>
+                                        </div>
+                                    )}
+                                    
+                                    {isUploading.banner && (
+                                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
+                                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                        </div>
+                                    )}
+                                    
+                                    <input
+                                        type="file"
+                                        ref={bannerInputRef}
+                                        onChange={(e) => handleFileUpload(e, 'banner')}
+                                        accept=".jpg,.jpeg,.png,.webp"
+                                        className="hidden"
+                                    />
+                                    
+                                    {!formData.banner_url && (
+                                        <button 
+                                            type="button"
+                                            onClick={() => bannerInputRef.current?.click()}
+                                            className="absolute inset-0 w-full h-full cursor-pointer"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Judul Banner</label>
+                                    <input
+                                        type="text"
+                                        name="banner_title"
+                                        value={formData.banner_title}
+                                        onChange={handleChange}
+                                        placeholder="Contoh: Diskon Spesial Akhir Tahun!"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Deskripsi Singkat</label>
+                                    <input
+                                        type="text"
+                                        name="banner_description"
+                                        value={formData.banner_description}
+                                        onChange={handleChange}
+                                        placeholder="Top up game favoritmu sekarang..."
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
