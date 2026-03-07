@@ -39,14 +39,19 @@ export default async function Home() {
       <div className="relative overflow-hidden bg-background pt-24 pb-20 md:pt-36 md:pb-32">
         {/* Custom Banner Background if Active */}
         {showCustomBanner && settings?.banner_url && (
-          <div className="absolute inset-0 z-0">
-             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40 z-10"></div>
+          <div className="absolute inset-0 z-0 select-none pointer-events-none">
+             {/* Gradient Overlay for Readability */}
+             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/90 to-background/50 z-10"></div>
+             <div className="absolute inset-0 bg-black/40 z-10"></div>
+             
+             {/* The Banner Image */}
              <Image 
                src={settings.banner_url} 
                alt={settings.banner_title || 'Hero Banner'} 
                fill 
-               className="object-cover opacity-40 blur-[2px] scale-105"
+               className="object-cover blur-[1px]"
                priority
+               quality={90}
              />
           </div>
         )}

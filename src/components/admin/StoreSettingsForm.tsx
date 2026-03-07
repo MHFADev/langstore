@@ -204,6 +204,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                             <input 
                                 type="checkbox" 
                                 id="banner_active"
+                                name="banner_active"
                                 checked={formData.banner_active}
                                 onChange={(e) => handleToggle('banner_active', e.target.checked)}
                                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
@@ -211,86 +212,90 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                             <label htmlFor="banner_active" className="text-sm font-medium">Aktifkan Banner Custom</label>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Jika dinonaktifkan, akan menggunakan tampilan default.
+                            Jika dinonaktifkan, akan menggunakan tampilan default (Gradient & Animasi).
                         </p>
                     </div>
 
-                    {formData.banner_active && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <div className="space-y-4">
-                                <label className="text-sm font-medium">Gambar Banner</label>
-                                <div className="relative w-full aspect-[21/9] border-2 border-dashed rounded-xl flex items-center justify-center bg-muted/20 overflow-hidden group">
-                                    {formData.banner_url ? (
-                                        <>
-                                            <img src={formData.banner_url} alt="Banner Preview" className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => bannerInputRef.current?.click()}
-                                                    className="bg-white text-black px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors"
-                                                >
-                                                    Ganti Gambar
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="text-center p-6">
-                                            <ImageIcon className="w-12 h-12 text-muted-foreground/50 mx-auto mb-2" />
-                                            <p className="text-sm text-muted-foreground">Klik untuk unggah banner</p>
-                                            <p className="text-xs text-muted-foreground mt-1">Rekomendasi: 1920x800 px (JPG/WEBP)</p>
+                    <div className={formData.banner_active ? "space-y-6 animate-in fade-in slide-in-from-top-2 duration-300" : "opacity-50 pointer-events-none filter grayscale transition-all"}>
+                        <div className="space-y-4">
+                            <label className="text-sm font-medium flex justify-between">
+                                <span>Gambar Banner</span>
+                                {formData.banner_url && <span className="text-xs text-green-600 font-normal">✓ Terpasang</span>}
+                            </label>
+                            
+                            <div className="relative w-full aspect-[21/9] border-2 border-dashed rounded-xl flex items-center justify-center bg-muted/20 overflow-hidden group hover:border-primary/50 transition-colors">
+                                {formData.banner_url ? (
+                                    <>
+                                        <img src={formData.banner_url} alt="Banner Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3">
+                                            <p className="text-white text-sm font-medium">Klik untuk ganti gambar</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => bannerInputRef.current?.click()}
+                                                className="bg-white text-black px-6 py-2 rounded-full text-sm font-bold hover:bg-gray-100 transition-colors shadow-lg"
+                                            >
+                                                Ganti Gambar
+                                            </button>
                                         </div>
-                                    )}
-                                    
-                                    {isUploading.banner && (
-                                        <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    </>
+                                ) : (
+                                    <div className="text-center p-8 cursor-pointer" onClick={() => bannerInputRef.current?.click()}>
+                                        <div className="bg-background/50 p-4 rounded-full inline-block mb-3">
+                                            <ImageIcon className="w-8 h-8 text-primary/70" />
                                         </div>
-                                    )}
-                                    
-                                    <input
-                                        type="file"
-                                        ref={bannerInputRef}
-                                        onChange={(e) => handleFileUpload(e, 'banner')}
-                                        accept=".jpg,.jpeg,.png,.webp"
-                                        className="hidden"
-                                    />
-                                    
-                                    {!formData.banner_url && (
-                                        <button 
-                                            type="button"
-                                            onClick={() => bannerInputRef.current?.click()}
-                                            className="absolute inset-0 w-full h-full cursor-pointer"
-                                        />
-                                    )}
-                                </div>
+                                        <p className="text-sm font-medium text-foreground">Klik untuk unggah banner</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Rekomendasi: 1920x800 px (JPG/WEBP, Max 2MB)</p>
+                                    </div>
+                                )}
+                                
+                                {isUploading.banner && (
+                                    <div className="absolute inset-0 bg-background/90 flex flex-col items-center justify-center z-20">
+                                        <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
+                                        <p className="text-sm font-medium animate-pulse">Sedang mengunggah...</p>
+                                    </div>
+                                )}
+                                
+                                <input
+                                    type="file"
+                                    ref={bannerInputRef}
+                                    onChange={(e) => handleFileUpload(e, 'banner')}
+                                    accept=".jpg,.jpeg,.png,.webp"
+                                    className="hidden"
+                                />
                             </div>
+                            
+                            {formData.banner_url && (
+                                <div className="text-xs text-muted-foreground break-all">
+                                    URL: <a href={formData.banner_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">{formData.banner_url}</a>
+                                </div>
+                            )}
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Judul Banner</label>
-                                    <input
-                                        type="text"
-                                        name="banner_title"
-                                        value={formData.banner_title}
-                                        onChange={handleChange}
-                                        placeholder="Contoh: Diskon Spesial Akhir Tahun!"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Deskripsi Singkat</label>
-                                    <input
-                                        type="text"
-                                        name="banner_description"
-                                        value={formData.banner_description}
-                                        onChange={handleChange}
-                                        placeholder="Top up game favoritmu sekarang..."
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                    />
-                                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Judul Banner (Opsional)</label>
+                                <input
+                                    type="text"
+                                    name="banner_title"
+                                    value={formData.banner_title}
+                                    onChange={handleChange}
+                                    placeholder="Contoh: Diskon Spesial Akhir Tahun!"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Deskripsi Singkat (Opsional)</label>
+                                <input
+                                    type="text"
+                                    name="banner_description"
+                                    value={formData.banner_description}
+                                    onChange={handleChange}
+                                    placeholder="Top up game favoritmu sekarang..."
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                />
                             </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
 
