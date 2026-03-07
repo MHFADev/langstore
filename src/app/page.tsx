@@ -61,14 +61,13 @@ export default async function Home() {
               settings.banner_title
             ) : (
               <>
-                Digital Store <span className="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent-foreground">Premium</span> <br />
-                Kebutuhan Gaming Anda
+                LangSTR
               </>
             )}
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed mb-10 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-150 drop-shadow-sm">
-            {settings?.banner_description || "Temukan Akun Game Sultan, Top Up Termurah, Jasa Joki Terpercaya, dan Aplikasi Premium legal dengan proses instan."}
+            {settings?.banner_description || "Marketplace Terpercaya untuk Jual Beli Akun Game, Nokos, dan Aplikasi Premium dengan Aman dan Cepat."}
           </p>
 
           <div className="flex justify-center gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">

@@ -291,26 +291,26 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Judul Banner (Opsional)</label>
-                                <input
-                                    type="text"
-                                    name="banner_title"
-                                    value={formData.banner_title}
-                                    onChange={handleChange}
-                                    placeholder="Contoh: Diskon Spesial Akhir Tahun!"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Deskripsi Singkat (Opsional)</label>
-                                <input
-                                    type="text"
-                                    name="banner_description"
-                                    value={formData.banner_description}
-                                    onChange={handleChange}
-                                    placeholder="Top up game favoritmu sekarang..."
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                />
-                            </div>
+                                    <input
+                                        type="text"
+                                        name="banner_title"
+                                        value={formData.banner_title}
+                                        onChange={handleChange}
+                                        placeholder="LangSTR"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Deskripsi Singkat (Opsional)</label>
+                                    <input
+                                        type="text"
+                                        name="banner_description"
+                                        value={formData.banner_description}
+                                        onChange={handleChange}
+                                        placeholder="Marketplace Terpercaya untuk Jual Beli Akun Game..."
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                </div>
                         </div>
                     </div>
                 </div>
