@@ -32,9 +32,9 @@ export default async function PaymentSettingsPage() {
 
             <main className="container mx-auto py-10 px-4">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Pengaturan Pembayaran</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Pengaturan Toko & Banner</h1>
                     <p className="text-muted-foreground">
-                        Kelola metode pembayaran toko seperti nomor rekening, QRIS, DANA, dan GoPay.
+                        Kelola banner halaman depan, metode pembayaran, dan informasi toko lainnya.
                     </p>
                 </div>
 
