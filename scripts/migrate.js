@@ -155,7 +155,7 @@ async function main() {
     const migrationDir = path.join(__dirname, 'migrations');
     if (fs.existsSync(migrationDir)) {
       const files = fs.readdirSync(migrationDir)
-        .filter(f => f.endsWith('.sql'))
+        .filter(f => f.endsWith('.sql') && !f.startsWith('._'))
         .sort();
 
       for (const file of files) {
