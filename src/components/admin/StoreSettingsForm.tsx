@@ -123,7 +123,6 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
             const { error } = await supabase
                 .from('store_settings')
                 .upsert({
-                    id: 1,
                     ...formData,
                     updated_at: new Date().toISOString(),
                 });
