@@ -3,9 +3,73 @@ import { CheckoutForm } from '@/components/ui/CheckoutForm';
 import { Header } from '@/components/layout/Header';
 import { Product, StoreSettings } from '@/types';
 import { notFound } from 'next/navigation';
+import { Metadata, ResolvingMetadata } from 'next';
 
 interface CheckoutPageProps {
     params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata(
+    { params }: CheckoutPageProps,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    // read route params
+    const id = (await params).id;
+
+    // fetch data
+    const supabase = await createClient();
+    const { data: product } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+    
+    // fetch store settings for default image
+    const { data: settings } = await supabase
+        .from('store_settings')
+        .select('*')
+        .single();
+
+    if (!product) {
+        return {
+            title: 'Produk Tidak Ditemukan | LANG STR',
+        };
+    }
+
+    // optionally access and extend (rather than replace) parent metadata
+    const previousImages = (await parent).openGraph?.images || [];
+
+    const productTitle = `${product.name} | LANG STR`;
+    const productDescription = product.description 
+        ? product.description.substring(0, 160) + (product.description.length > 160 ? '...' : '')
+        : `Beli ${product.name} dengan harga terbaik di LANG STR. Proses cepat dan aman.`;
+    
+    const productImage = product.image_url || settings?.site_meta_image || '/opengraph-image.png';
+
+    return {
+        title: productTitle,
+        description: productDescription,
+        openGraph: {
+            title: productTitle,
+            description: productDescription,
+            images: [
+                {
+                    url: productImage,
+                    width: 1200,
+                    height: 630,
+                    alt: product.name,
+                },
+                ...previousImages,
+            ],
+            type: 'website', // Product pages can use 'article' or 'website', but 'website' is safer for general sharing
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: productTitle,
+            description: productDescription,
+            images: [productImage],
+        },
+    };
 }
 
 export default async function CheckoutPage({ params }: CheckoutPageProps) {

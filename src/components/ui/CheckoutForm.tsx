@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Product, StoreSettings } from '@/types';
 import Image from 'next/image';
 import { Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { WhatsAppShareButton } from './WhatsAppShareButton';
 
 interface CheckoutFormProps {
     product: Product;
@@ -17,6 +18,13 @@ export function CheckoutForm({ product, storeSettings }: CheckoutFormProps) {
     const [paymentMethod, setPaymentMethod] = useState('qris');
     const [isLoading, setIsLoading] = useState(false);
     const [errorInput, setErrorInput] = useState('');
+    const [productUrl, setProductUrl] = useState('');
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setProductUrl(window.location.href);
+        }
+    }, []);
 
     const router = useRouter();
     const supabase = createClient();
@@ -103,6 +111,15 @@ export function CheckoutForm({ product, storeSettings }: CheckoutFormProps) {
                             <span className="inline-flex items-center gap-1 mt-2 bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider w-fit">
                                 {product.category || 'Digital'}
                             </span>
+                            {productUrl && (
+                                <div className="mt-2">
+                                    <WhatsAppShareButton 
+                                        productName={product.name} 
+                                        productUrl={productUrl}
+                                        className="text-xs py-1.5 px-3" 
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 
