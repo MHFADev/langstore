@@ -9,7 +9,7 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Missing Supabase environment variables');
+    console.error(`Missing Supabase environment variables. URL: ${!!supabaseUrl}, Key: ${!!supabaseAnonKey}`);
     // Return a dummy client or throw a handled error depending on your strategy.
     // Here we throw a specific error that error.tsx can catch.
     throw new Error('Konfigurasi server belum lengkap. Mohon hubungi administrator.');
