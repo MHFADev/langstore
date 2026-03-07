@@ -1,0 +1,32 @@
+# Building Lang STR Admin Expo APK
+
+This document tracks the progress of building the Android APK for the `APK ADMIN PANE` using Expo Application Services (EAS). 
+It serves as a handoff document if another AI needs to continue the process.
+
+## Completed Steps
+
+- [x] Initial check of the `APK ADMIN PANE` directory.
+- [x] Verified EAS CLI is installed.
+- [x] Discovered missing Radix UI dependencies in the main project (`langstore`) and fixed them (previous task).
+- [x] Attempted initial EAS build which failed due to a Gradle error.
+- [x] Fixed `nativewind` dependency mismatch (upgraded to v4 to match [metro.config.js](file:///Users/salvaauliaswadesi/Documents/HILMI/MY%20ALL%20PROJECT/PROJECT%20CLONE/langstore/APK%20ADMIN%20PANE/metro.config.js)).
+- [x] Generated missing base assets (`icon.png`, `splash.png`, `adaptive-icon.png`).
+- [x] Fixed [app.json](file:///Users/salvaauliaswadesi/Documents/HILMI/MY%20ALL%20PROJECT/PROJECT%20CLONE/langstore/APK%20ADMIN%20PANE/app.json) to include `icon`, `splash`, and `adaptiveIcon` configurations which are required by EAS for Android builds.
+- [x] Started the second EAS build (`eas build --profile preview --platform android`).
+- [x] Second EAS build failed. (Gradle Build Failed with Unknown Error)
+- [x] Ran a local prebuild (`npx expo prebuild --clean`) to regenerate the [android/](file:///Users/salvaauliaswadesi/Documents/HILMI/MY%20ALL%20PROJECT/PROJECT%20CLONE/langstore/APK%20ADMIN%20PANE/android) folder correctly based on [app.json](file:///Users/salvaauliaswadesi/Documents/HILMI/MY%20ALL%20PROJECT/PROJECT%20CLONE/langstore/APK%20ADMIN%20PANE/app.json).
+
+## In Progress
+
+- [/] Ready to attempt the EAS build or local build again with the newly generated [android](file:///Users/salvaauliaswadesi/Documents/HILMI/MY%20ALL%20PROJECT/PROJECT%20CLONE/langstore/APK%20ADMIN%20PANE/android) folder. 
+- [/] (Handoff Point) The clean [android/](file:///Users/salvaauliaswadesi/Documents/HILMI/MY%20ALL%20PROJECT/PROJECT%20CLONE/langstore/APK%20ADMIN%20PANE/android) folder now correctly aligns with `com.langstr.admin` and the newly added assets.
+
+## Remaining Steps / Next Actions
+
+- [ ] Submit the third EAS build: `eas build --profile preview --platform android`
+- [ ] Alternatively, run a local Gradle build to verify it compiles: `cd android && ./gradlew assembleRelease`
+- [ ] If the build **succeeds**:
+    - [ ] Provide the download link for the `.apk` file to the user.
+- [ ] If the build **fails** again:
+    - [ ] Inspect the local Gradle execution logs to trace the root error causing the failure.
+- [ ] Provide final handover instructions to the user.

@@ -1,0 +1,8 @@
+{
+  "appId": "com.langstore.admin",
+  "appName": "Admin Pro",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

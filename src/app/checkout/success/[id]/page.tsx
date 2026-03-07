@@ -50,18 +50,37 @@ export default async function SuccessPage({ params }: SuccessPageProps) {
         switch (order.payment_method) {
             case 'qris':
                 return (
-                    <div className="flex flex-col items-center space-y-4">
-                        <p className="text-sm font-medium text-muted-foreground">Scan QRIS di bawah ini untuk membayar:</p>
+                    <div className="flex flex-col items-center space-y-6 py-4">
+                        <div className="text-center space-y-1">
+                            <p className="text-lg font-bold text-foreground">Scan QRIS</p>
+                            <p className="text-sm text-muted-foreground">Gunakan aplikasi e-wallet atau mobile banking apa saja.</p>
+                        </div>
+                        
                         {settings?.payment_qris_url ? (
-                            <div className="relative w-64 h-64 border-2 border-primary/20 rounded-xl overflow-hidden bg-white p-2">
-                                <Image src={settings.payment_qris_url} alt="QRIS" fill className="object-contain" />
+                            <div className="relative w-full max-w-sm aspect-[3/4] md:aspect-square bg-white rounded-3xl shadow-2xl p-6 border-4 border-white ring-1 ring-black/5 transform hover:scale-[1.02] transition-transform duration-300">
+                                <div className="absolute inset-0 border-b-[16px] border-primary/10 pointer-events-none"></div>
+                                <Image 
+                                    src={settings.payment_qris_url} 
+                                    alt="Scan QRIS Langstore" 
+                                    fill 
+                                    className="object-contain p-4" 
+                                    priority
+                                />
                             </div>
                         ) : (
-                            <p className="text-red-500 text-sm">QRIS belum diatur oleh Admin.</p>
+                            <div className="w-full h-64 flex items-center justify-center bg-destructive/10 rounded-xl border border-destructive/20">
+                                <p className="text-destructive font-medium flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                                    QRIS belum diatur
+                                </p>
+                            </div>
                         )}
-                        <p className="text-xs text-muted-foreground text-center max-w-xs mt-2">
-                            Silakan periksa kembali nominal sebelum transfer.
-                        </p>
+                        
+                        <div className="bg-primary/5 px-4 py-3 rounded-xl border border-primary/10 max-w-xs text-center">
+                            <p className="text-xs text-primary font-medium">
+                                💡 Tips: Screenshot layar ini jika Anda ingin membayar nanti.
+                            </p>
+                        </div>
                     </div>
                 );
             case 'transfer_bank':
@@ -153,8 +172,10 @@ export default async function SuccessPage({ params }: SuccessPageProps) {
                             </span>
                         </div>
 
-                        <div className="bg-background rounded-2xl p-2 border border-primary/10 shadow-inner">
-                            {renderPaymentInstructions()}
+                        <div className="bg-gradient-to-b from-secondary/20 to-secondary/5 rounded-3xl p-1 border border-white/10 shadow-inner">
+                            <div className="bg-background/50 backdrop-blur-sm rounded-[1.4rem] p-6 md:p-8">
+                                {renderPaymentInstructions()}
+                            </div>
                         </div>
                     </div>
 
