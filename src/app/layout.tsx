@@ -26,34 +26,22 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const supabase = await createClient();
-  const { data: settings } = await supabase
-    .from('store_settings')
-    .select('*')
-    .single();
-
-  const title = settings?.site_title || "LANG STR | Modern Product Catalog";
-  const description = settings?.site_description || "Temukan koleksi pilihan terbaik dari LANG STR.";
-  const url = settings?.canonical_url || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  const ogImage = settings?.site_meta_image || '/next.svg';
-  const keywords = settings?.site_keywords || 'game, topup, premium, store';
-  const favicon = settings?.favicon_url || '/favicon.svg';
-
+  // Hardcoded Metadata for Stability
+  const title = "LANG STR | Top Up Game & Produk Digital Terpercaya";
+  const description = "Pusat top up game termurah, cepat, dan terpercaya. Sedia Mobile Legends, PUBG, Free Fire, dan produk digital premium lainnya. Proses otomatis 24 jam.";
+  const url = 'https://langstore.web.id';
+  const keywords = ['top up game', 'voucher game', 'mobile legends', 'pubg mobile', 'free fire', 'langstore', 'lang str', 'produk digital'];
+  
   return {
     title: {
       default: title,
-      template: `%s | ${title.split('|')[0].trim()}`,
+      template: `%s | LANG STR`,
     },
     description,
-    keywords: keywords.split(',').map((k: string) => k.trim()),
+    keywords,
     authors: [{ name: 'LANG STR' }],
     creator: 'LANG STR',
     publisher: 'LANG STR',
-    formatDetection: {
-      email: false,
-      address: false,
-      telephone: false,
-    },
     metadataBase: new URL(url),
     alternates: {
       canonical: '/',
@@ -62,38 +50,26 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       url: '/',
-      siteName: title,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
+      siteName: 'LANG STR',
       locale: 'id_ID',
       type: 'website',
+      // Images will be automatically handled by opengraph-image.tsx
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [ogImage],
+      // Images will be automatically handled by twitter-image.tsx
     },
     icons: {
-      icon: [
-        { url: favicon, sizes: '32x32' },
-        { url: favicon, sizes: '16x16' },
-      ],
-      apple: [
-        { url: favicon, sizes: '180x180' },
-      ],
+      icon: '/favicon.ico', // Ensure you have favicon.ico in public folder
+      apple: '/apple-touch-icon.png', // Optional
     },
     verification: {
-      google: settings?.google_search_console_id || "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
+      google: "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
     },
     other: {
-      'google-site-verification': settings?.google_search_console_id || "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
+      'google-site-verification': "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
     }
   };
 }

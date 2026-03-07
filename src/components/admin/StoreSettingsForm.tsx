@@ -20,14 +20,8 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         payment_dana_number: initialSettings?.payment_dana_number || '',
         payment_gopay_number: initialSettings?.payment_gopay_number || '',
         whatsapp_number_admin: initialSettings?.whatsapp_number_admin || '',
-        site_title: initialSettings?.site_title || '',
-        site_description: initialSettings?.site_description || '',
-        site_keywords: initialSettings?.site_keywords || '',
-        site_meta_image: initialSettings?.site_meta_image || '',
-        favicon_url: initialSettings?.favicon_url || '',
         google_analytics_id: initialSettings?.google_analytics_id || '',
         google_search_console_id: initialSettings?.google_search_console_id || '',
-        canonical_url: initialSettings?.canonical_url || '',
         banner_url: initialSettings?.banner_url || '',
         banner_title: initialSettings?.banner_title || '',
         banner_description: initialSettings?.banner_description || '',
@@ -35,11 +29,9 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
     });
 
     const [isLoading, setIsLoading] = useState(false);
-    const [isUploading, setIsUploading] = useState<{ favicon: boolean; metaImage: boolean; banner: boolean }>({ favicon: false, metaImage: false, banner: false });
+    const [isUploading, setIsUploading] = useState<{ banner: boolean }>({ banner: false });
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    const faviconInputRef = useRef<HTMLInputElement>(null);
-    const metaImageInputRef = useRef<HTMLInputElement>(null);
     const bannerInputRef = useRef<HTMLInputElement>(null);
 
     const supabase = createClient();
@@ -53,30 +45,27 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         setFormData((prev) => ({ ...prev, [name]: checked }));
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'favicon' | 'metaImage' | 'banner') => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'banner') => {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setIsUploading((prev) => ({ ...prev, [type]: true }));
         try {
             let fileToUpload = file;
-            const isFavicon = type === 'favicon';
 
             // Validasi format
-            const validTypes = isFavicon ? ['image/png', 'image/x-icon', 'image/svg+xml'] : ['image/jpeg', 'image/png', 'image/webp'];
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
             if (!validTypes.includes(file.type)) {
                 throw new Error(`Format file tidak didukung. Gunakan ${validTypes.join(', ')}.`);
             }
 
-            // Kompresi jika bukan SVG atau ICO
-            if (!file.type.includes('svg') && !file.type.includes('icon')) {
-                const options = {
-                    maxSizeMB: isFavicon ? 0.1 : 1,
-                    maxWidthOrHeight: isFavicon ? 180 : type === 'banner' ? 1920 : 1200,
-                    useWebWorker: true,
-                };
-                fileToUpload = await imageCompression(file, options);
-            }
+            // Kompresi
+            const options = {
+                maxSizeMB: 1,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true,
+            };
+            fileToUpload = await imageCompression(file, options);
 
             const fileName = `${type}_${Date.now()}.${fileToUpload.type.split('/')[1]}`;
             const { data, error } = await supabase.storage
@@ -94,8 +83,6 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
             const finalUrl = `${publicUrl}?v=${Date.now()}`;
 
             const fieldMap = {
-                favicon: 'favicon_url',
-                metaImage: 'site_meta_image',
                 banner: 'banner_url'
             };
 
@@ -104,7 +91,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                 [fieldMap[type]]: finalUrl,
             }));
 
-            setMessage({ type: 'success', text: `${type === 'banner' ? 'Banner' : isFavicon ? 'Favicon' : 'Meta image'} berhasil diunggah.` });
+            setMessage({ type: 'success', text: 'Banner berhasil diunggah.' });
         } catch (err: unknown) {
             console.error('Upload error:', err);
             const errorMessage = err instanceof Error ? err.message : 'Gagal mengunggah file.';
@@ -307,94 +294,11 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                 </div>
             </div>
 
-            {/* 2. Favicon & Social Image Section */}
+            {/* 2. Favicon & Social Image Section REMOVED (Hardcoded in code) */}
+            {/* 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Favicon */}
-                <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b bg-muted/30 flex items-center gap-2">
-                        <div className="p-1 bg-primary/10 rounded">
-                            <ImageIcon className="h-4 w-4 text-primary" />
-                        </div>
-                        <h3 className="font-semibold">Manajemen Favicon</h3>
-                    </div>
-                    <div className="p-6 space-y-4 text-center">
-                        <div className="flex justify-center mb-4">
-                            <div className="relative w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/20">
-                                {formData.favicon_url ? (
-                                    <img src={formData.favicon_url} alt="Favicon Preview" className="w-16 h-16 object-contain" />
-                                ) : (
-                                    <Globe className="w-10 h-10 text-muted-foreground/50" />
-                                )}
-                                {isUploading.favicon && (
-                                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-lg">
-                                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <input
-                            type="file"
-                            ref={faviconInputRef}
-                            onChange={(e) => handleFileUpload(e, 'favicon')}
-                            accept=".png,.ico,.svg"
-                            className="hidden"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => faviconInputRef.current?.click()}
-                            disabled={isUploading.favicon}
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium border rounded-md hover:bg-muted transition-colors"
-                        >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Ganti Favicon
-                        </button>
-                        <p className="text-[10px] text-muted-foreground mt-2">
-                            Rekomendasi: PNG 180x180 atau SVG untuk kualitas terbaik di semua perangkat.
-                        </p>
-                    </div>
-                </div>
-
-                {/* Social Share Preview Image */}
-                <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-                    <div className="p-4 border-b bg-muted/30 flex items-center gap-2">
-                        <ImageIcon className="h-5 w-5 text-primary" />
-                        <h3 className="font-semibold">Social Share Card (OG Image)</h3>
-                    </div>
-                    <div className="p-6 space-y-4">
-                        <div className="relative aspect-[1200/630] w-full border rounded-lg bg-muted/20 overflow-hidden">
-                            {formData.site_meta_image ? (
-                                <img src={formData.site_meta_image} alt="OG Preview" className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50">
-                                    <ImageIcon className="w-12 h-12 mb-2" />
-                                    <p className="text-sm">Preview 1200 x 630 px</p>
-                                </div>
-                            )}
-                            {isUploading.metaImage && (
-                                <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                </div>
-                            )}
-                        </div>
-                        <input
-                            type="file"
-                            ref={metaImageInputRef}
-                            onChange={(e) => handleFileUpload(e, 'metaImage')}
-                            accept=".jpg,.jpeg,.png,.webp"
-                            className="hidden"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => metaImageInputRef.current?.click()}
-                            disabled={isUploading.metaImage}
-                            className="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium border rounded-md hover:bg-muted transition-colors"
-                        >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Unggah Gambar Preview Sosial
-                        </button>
-                    </div>
-                </div>
-            </div>
+            </div> 
+            */}
 
             {/* 3. Analytics & Search Console */}
             <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
