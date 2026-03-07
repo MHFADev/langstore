@@ -13,12 +13,16 @@ export function createClient() {
     if (typeof window === 'undefined') {
       console.warn('Supabase env vars missing during build time');
       return null as unknown as SupabaseClient; // Allow build to continue
+    } else {
+      console.error('Supabase env vars missing at runtime. Please check your Vercel Environment Variables.');
+      // Return a dummy client to avoid total crash, but the app will likely fail on API calls
+      return null as unknown as SupabaseClient;
     }
   }
 
   client = createBrowserClient(
-    supabaseUrl!,
-    supabaseAnonKey!
+    supabaseUrl,
+    supabaseAnonKey
   )
 
   return client
