@@ -10,19 +10,35 @@ import { FramerWrapper } from '@/components/ui/FramerWrapper';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
-export default async function Home() {
+export default async function Home(props: { 
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> 
+}) {
+  const searchParams = await props.searchParams;
+  const selectedCategory = typeof searchParams.category === 'string' ? searchParams.category : 'All';
   const supabase = await createClient();
 
-  const [productsResult, settingsResult, bannersResult] = await Promise.all([
-    supabase.from('products').select('*').order('created_at', { ascending: false }),
+  // Define base queries
+  let productsQuery = supabase.from('products').select('*').order('created_at', { ascending: false });
+  
+  // Apply database filter if a category is selected and not 'All'
+  if (selectedCategory !== 'All') {
+    productsQuery = productsQuery.eq('category', selectedCategory);
+  }
+
+  const [productsResult, settingsResult, bannersResult, categoriesResult] = await Promise.all([
+    productsQuery,
     supabase.from('store_settings').select('*').single(),
-    supabase.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true })
+    supabase.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true }),
+    supabase.from('products').select('category') // To get all unique categories even when filtered
   ]);
 
   const products = productsResult.data;
   const error = productsResult.error;
   const settings = settingsResult.data as StoreSettings | null;
   const banners = (bannersResult.data || []) as Banner[];
+  
+  // Get all unique categories from all products to show in the filter
+  const allCategories = ['All', ...Array.from(new Set((categoriesResult.data || []).map(p => p.category || 'Other')))];
 
   if (error) {
     console.error('Error fetching products (Home):', JSON.stringify(error, null, 2));
@@ -31,7 +47,7 @@ export default async function Home() {
   // Ensure products have category field
   const processedProducts = (products as Product[])?.map(p => ({
     ...p,
-    category: p.category || 'Other' // Standardized fallback to match ProductGrid
+    category: p.category || 'Other' // Standardized fallback
   })) || [];
 
   return (
@@ -120,18 +136,9 @@ export default async function Home() {
           </p>
         </FramerWrapper>
 
-        {processedProducts.length > 0 ? (
-          <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
-            <ProductGrid products={processedProducts} />
-          </Suspense>
-        ) : (
-          <FramerWrapper scale={0.9} className="flex h-80 flex-col items-center justify-center space-y-4 rounded-3xl border border-dashed border-primary/20 bg-secondary/30 text-center">
-            <div className="rounded-2xl bg-primary/10 p-4">
-              <Sparkles className="w-10 h-10 text-primary" />
-            </div>
-            <p className="text-lg font-medium text-muted-foreground">Katalog masih kosong, admin sedang menyiapkan produk terbaik.</p>
-          </FramerWrapper>
-        )}
+        <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+          <ProductGrid products={processedProducts} allCategories={allCategories} />
+        </Suspense>
       </main>
 
       <Footer settings={settings} />
