@@ -35,7 +35,6 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         site_meta_image: initialSettings?.site_meta_image || '',
         analytics_embed_url: initialSettings?.analytics_embed_url || '',
     });
-
     const [isLoading, setIsLoading] = useState(false);
     const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
     const [isUploadingOG, setIsUploadingOG] = useState(false);
