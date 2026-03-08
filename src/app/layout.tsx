@@ -26,16 +26,38 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  // Hardcoded Metadata for Stability
-  const title = "LANG STR | Top Up Game & Produk Digital Terpercaya";
-  const description = "Pusat top up game termurah, cepat, dan terpercaya. Sedia Mobile Legends, PUBG, Free Fire, dan produk digital premium lainnya. Proses otomatis 24 jam.";
-  const url = 'https://langstore.web.id';
-  const keywords = ['top up game', 'voucher game', 'mobile legends', 'pubg mobile', 'free fire', 'langstore', 'lang str', 'produk digital'];
+  const supabase = await createClient();
+  const { data: settings } = await supabase
+    .from('store_settings')
+    .select('*')
+    .single();
+
+  const title = settings?.site_title || "LANG STR | Top Up Game & Produk Digital Terpercaya";
+  const description = settings?.site_description || "Pusat top up game termurah, cepat, dan terpercaya. Sedia Mobile Legends, PUBG, Free Fire, dan produk digital premium lainnya. Proses otomatis 24 jam.";
+  const url = settings?.canonical_url || 'https://langstore.web.id';
   
+  // Parse keywords from comma-separated string
+  const keywords = settings?.site_keywords 
+    ? settings.site_keywords.split(',').map((k: string) => k.trim()) 
+    : ['top up game', 'voucher game', 'mobile legends', 'pubg mobile', 'free fire', 'langstore', 'lang str', 'produk digital'];
+  
+  // Google Verification Code
+  // If user inputs full meta tag <meta name="google-site-verification" content="..." />, extract content
+  // If user inputs just the code, use it directly
+  let googleVerificationCode = settings?.google_search_console_id || "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI";
+  
+  // Basic cleanup if user pasted full tag
+  if (googleVerificationCode.includes('content="')) {
+    const match = googleVerificationCode.match(/content="([^"]+)"/);
+    if (match && match[1]) {
+      googleVerificationCode = match[1];
+    }
+  }
+
   return {
     title: {
       default: title,
-      template: `%s | LANG STR`,
+      template: `%s | ${title.split('|')[0].trim()}`,
     },
     description,
     keywords,
@@ -50,7 +72,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       url: '/',
-      siteName: 'LANG STR',
+      siteName: title.split('|')[0].trim(),
       locale: 'id_ID',
       type: 'website',
       // Images will be automatically handled by opengraph-image.tsx
@@ -62,14 +84,15 @@ export async function generateMetadata(): Promise<Metadata> {
       // Images will be automatically handled by twitter-image.tsx
     },
     icons: {
-      icon: '/favicon.ico', // Ensure you have favicon.ico in public folder
+      icon: settings?.favicon_url || '/favicon.ico',
       apple: '/apple-touch-icon.png', // Optional
     },
     verification: {
-      google: "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
+      google: googleVerificationCode,
     },
     other: {
-      'google-site-verification': "8j3vSkcDFKkFErhAtuklMcHukWxdKeCWDKZJblgVTVI",
+      // Fallback for some crawlers
+      'google-site-verification': googleVerificationCode,
     }
   };
 }
