@@ -1,17 +1,18 @@
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductGrid } from '@/components/ui/ProductGrid';
 import { HeroCarousel } from '@/components/ui/HeroCarousel';
 import { Product, StoreSettings, Banner } from '@/types';
-import { Sparkles, Gamepad2, ShieldCheck, Zap, MessageCircle } from 'lucide-react';
+import { Sparkles, Gamepad2, ShieldCheck, Zap, MessageCircle, Loader2 } from 'lucide-react';
 import { FramerWrapper } from '@/components/ui/FramerWrapper';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function Home() {
   const supabase = await createClient();
-  
+
   const [productsResult, settingsResult, bannersResult] = await Promise.all([
     supabase.from('products').select('*').order('created_at', { ascending: false }),
     supabase.from('store_settings').select('*').single(),
@@ -30,7 +31,7 @@ export default async function Home() {
   // Ensure products have category field
   const processedProducts = (products as Product[])?.map(p => ({
     ...p,
-    category: p.category || 'Game Account' // Default fallback
+    category: p.category || 'Other' // Standardized fallback to match ProductGrid
   })) || [];
 
   return (
@@ -80,14 +81,14 @@ export default async function Home() {
 
           {/* Dynamic Banner Carousel */}
           {banners.length > 0 && (
-             <FramerWrapper y={50} delay={0.8} className="mt-16 mx-auto max-w-5xl">
-                <HeroCarousel banners={banners} />
-             </FramerWrapper>
+            <FramerWrapper y={50} delay={0.8} className="mt-16 mx-auto max-w-5xl">
+              <HeroCarousel banners={banners} />
+            </FramerWrapper>
           )}
 
-          <FramerWrapper 
-            y={20} 
-            delay={1} 
+          <FramerWrapper
+            y={20}
+            delay={1}
             className="mt-16 pt-8 border-t border-border/50 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70"
           >
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -120,7 +121,9 @@ export default async function Home() {
         </FramerWrapper>
 
         {processedProducts.length > 0 ? (
-          <ProductGrid products={processedProducts} />
+          <Suspense fallback={<div className="h-96 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+            <ProductGrid products={processedProducts} />
+          </Suspense>
         ) : (
           <FramerWrapper scale={0.9} className="flex h-80 flex-col items-center justify-center space-y-4 rounded-3xl border border-dashed border-primary/20 bg-secondary/30 text-center">
             <div className="rounded-2xl bg-primary/10 p-4">

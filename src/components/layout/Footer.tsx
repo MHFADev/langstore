@@ -86,23 +86,23 @@ export function Footer({ settings }: FooterProps) {
                         <h3 className="font-bold text-foreground">Kategori Populer</h3>
                         <ul className="space-y-2 text-sm text-muted-foreground">
                             <li>
-                                <Link href="/category/game-account" className="hover:text-primary transition-colors">
+                                <Link href="/?category=Game%20Account#catalog" className="hover:text-primary transition-colors">
                                     Game Account
                                 </Link>
                             </li>
                             {/* Removed Top Up Game */}
                             <li>
-                                <Link href="/category/nokos" className="hover:text-primary transition-colors">
-                                    Nokos
+                                <Link href="/?category=Other#catalog" className="hover:text-primary transition-colors">
+                                    Nokos (Other)
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/category/premium-app" className="hover:text-primary transition-colors">
+                                <Link href="/?category=Premium%20App#catalog" className="hover:text-primary transition-colors">
                                     Aplikasi Premium
                                 </Link>
                             </li>
                             <li>
-                                <Link href="/category/joki" className="hover:text-primary transition-colors">
+                                <Link href="/?category=Joki#catalog" className="hover:text-primary transition-colors">
                                     Jasa Joki
                                 </Link>
                             </li>

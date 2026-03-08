@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Product } from '@/types';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { CategoryFilter } from '@/components/ui/CategoryFilter';
@@ -12,7 +12,19 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products }: ProductGridProps) {
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const selectedCategory = searchParams.get('category') || 'All';
+
+  const setSelectedCategory = (category: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (category === 'All') {
+      params.delete('category');
+    } else {
+      params.set('category', category);
+    }
+    router.push(`/?${params.toString()}#catalog`, { scroll: false });
+  };
 
   // Get unique categories from products
   const categories = ['All', ...Array.from(new Set(products.map((p) => p.category || 'Other')))];
