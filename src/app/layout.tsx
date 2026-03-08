@@ -80,6 +80,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -111,17 +113,29 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} ${spaceGrotesk.variable} antialiased`}
       >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
+        
+        {/* Schema.org JSON-LD */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        
+        {/* Google Analytics */}
         {settings?.google_analytics_id && (
           <>
-            <script async src={`https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}`} />
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${settings.google_analytics_id}`}></script>
             <script
               dangerouslySetInnerHTML={{
                 __html: `
@@ -134,7 +148,6 @@ export default async function RootLayout({
             />
           </>
         )}
-        {children}
       </body>
     </html>
   );

@@ -49,7 +49,7 @@
 :root {
   /* Clean White Background */
   --background: #ffffff;
-  /* Deep Navy for Text */
+  /* Deep Navy for Text - WCAG AAA */
   --foreground: #0f172a; 
 
   /* Sky Blue Primary */
@@ -58,15 +58,15 @@
 
   /* Soft Sky Blue for Secondary/Cards */
   --secondary: #f0f9ff; 
-  --secondary-foreground: #0284c7; 
+  --secondary-foreground: #0369a1; /* Darker for better contrast */
 
   /* Muted Text and Backgrounds */
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569; /* Darker slate for readability */
 
   /* Accents */
   --accent: #e0f2fe; 
-  --accent-foreground: #0369a1;
+  --accent-foreground: #0c4a6e;
 
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -79,30 +79,42 @@
 }
 
 .dark {
-  /* Dark Navy Background */
-  --background: #0f172a; 
-  --foreground: #f8fafc; 
+  /* Dark Navy Background - Not Pure Black for Eye Comfort */
+  --background: #020617; 
+  --foreground: #f8fafc; /* Almost White */
 
-  /* Sky Blue Primary (Slightly brighter for dark mode) */
+  /* Bright Sky Blue for Dark Mode Visibility */
   --primary: #38bdf8; 
   --primary-foreground: #0f172a;
 
-  /* Darker Blue for Cards */
+  /* Dark Blue-Gray for Cards */
   --secondary: #1e293b; 
   --secondary-foreground: #e0f2fe;
 
   --muted: #1e293b;
   --muted-foreground: #94a3b8;
 
-  --accent: #0f172a;
-  --accent-foreground: #f8fafc;
+  --accent: #1e293b;
+  --accent-foreground: #f0f9ff;
 
   --destructive: #7f1d1d;
-  --destructive-foreground: #f8fafc;
+  --destructive-foreground: #fef2f2;
 
   --border: #334155;
   --input: #334155;
-  --ring: #38bdf8;
+  --ring: #0ea5e9;
+}
+
+/* Smooth Theme Transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 @layer base {
