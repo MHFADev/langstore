@@ -40,34 +40,31 @@ export async function generateMetadata(
     const previousImages = (await parent).openGraph?.images || [];
 
     const productTitle = `${product.name} | LANG STR`;
-    const productDescription = product.description 
-        ? product.description.substring(0, 160) + (product.description.length > 160 ? '...' : '')
-        : `Beli ${product.name} dengan harga terbaik di LANG STR. Proses cepat dan aman.`;
+    const priceFormatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(product.price);
     
-    const productImage = product.image_url || settings?.site_meta_image || '/opengraph-image.png';
-
+    // Description with Price
+    const productDescription = `Beli ${product.name} hanya ${priceFormatted}. ${product.description 
+        ? product.description.substring(0, 100) + (product.description.length > 100 ? '...' : '')
+        : 'Proses cepat, aman, dan terpercaya di LANG STR.'}`;
+    
+    // We let opengraph-image.tsx handle the image generation dynamically
+    // But we provide a fallback if needed in the array structure if Next.js doesn't pick it up automatically (it should)
+    // Actually, by returning openGraph without images here, Next.js will use the file-based one.
+    
     return {
         title: productTitle,
         description: productDescription,
         openGraph: {
             title: productTitle,
             description: productDescription,
-            images: [
-                {
-                    url: productImage,
-                    width: 1200,
-                    height: 630,
-                    alt: product.name,
-                },
-                ...previousImages,
-            ],
-            type: 'website', // Product pages can use 'article' or 'website', but 'website' is safer for general sharing
+            // images: handled by opengraph-image.tsx
+            type: 'website',
         },
         twitter: {
             card: 'summary_large_image',
             title: productTitle,
             description: productDescription,
-            images: [productImage],
+            // images: handled by opengraph-image.tsx
         },
     };
 }
