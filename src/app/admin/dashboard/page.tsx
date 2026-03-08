@@ -3,6 +3,7 @@ import { ProductList } from '@/components/admin/ProductList';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Product, StoreSettings } from '@/types';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { BarChart, ExternalLink } from 'lucide-react';
 
 export default async function DashboardPage() {
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
 
       <main className="container mx-auto py-10 px-4 space-y-8">
         {/* Analytics Section */}
-        {settings?.analytics_embed_url && (
+        {settings?.analytics_embed_url ? (
           <div className="bg-card border rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -58,6 +59,17 @@ export default async function DashboardPage() {
                 title="Store Analytics"
               ></iframe>
             </div>
+          </div>
+        ) : (
+          <div className="bg-card border rounded-xl p-6 flex flex-col items-center justify-center gap-4 text-center text-muted-foreground animate-in fade-in slide-in-from-top-4 duration-500">
+            <BarChart className="h-10 w-10 text-muted-foreground/50" />
+            <div>
+              <h3 className="font-semibold text-foreground">Analitik Belum Dikonfigurasi</h3>
+              <p className="text-sm">Tambahkan URL embed Google Looker Studio untuk melihat statistik toko.</p>
+            </div>
+            <Link href="/admin/settings" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2">
+              Konfigurasi Sekarang
+            </Link>
           </div>
         )}
 

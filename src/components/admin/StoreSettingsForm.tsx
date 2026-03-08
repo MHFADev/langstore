@@ -40,6 +40,18 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+
+        // Auto-extract URL if user pastes iframe code for analytics_embed_url
+        if (name === 'analytics_embed_url' && value.includes('<iframe')) {
+            const srcMatch = value.match(/src="([^"]+)"/);
+            if (srcMatch && srcMatch[1]) {
+                setFormData((prev) => ({ ...prev, [name]: srcMatch[1] }));
+                // Show a toast or small notification that we extracted the URL? 
+                // For now, just silently fix it as it's a better UX than breaking.
+                return;
+            }
+        }
+
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
