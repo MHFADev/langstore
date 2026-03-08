@@ -30,6 +30,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         google_search_console_id: initialSettings?.google_search_console_id || '',
         canonical_url: initialSettings?.canonical_url || '',
         favicon_url: initialSettings?.favicon_url || '',
+        analytics_embed_url: initialSettings?.analytics_embed_url || '',
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -169,6 +170,23 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                             placeholder="content dari google-site-verification"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <BarChart className="h-4 w-4 text-green-500" />
+                            <label className="text-sm font-medium">Google Looker Studio Embed URL (Dashboard)</label>
+                        </div>
+                        <input
+                            type="text"
+                            name="analytics_embed_url"
+                            value={formData.analytics_embed_url || ''}
+                            onChange={handleChange}
+                            placeholder="https://lookerstudio.google.com/embed/reporting/..."
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Masukkan URL embed dari laporan Looker Studio (File &gt; Embed report &gt; Enable embedding &gt; Embed URL).
+                        </p>
                     </div>
                 </div>
             </div>

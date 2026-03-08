@@ -33,6 +33,7 @@ export interface StoreSettings {
   google_analytics_id?: string;
   google_search_console_id?: string;
   canonical_url?: string;
+  analytics_embed_url?: string;
 }
 
 export interface Banner {

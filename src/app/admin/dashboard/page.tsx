@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { ProductList } from '@/components/admin/ProductList';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { Product } from '@/types';
+import { Product, StoreSettings } from '@/types';
 import { redirect } from 'next/navigation';
+import { BarChart, ExternalLink } from 'lucide-react';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -15,21 +16,52 @@ export default async function DashboardPage() {
     redirect('/admin/login');
   }
 
-  const { data: products, error } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const [productsResult, settingsResult] = await Promise.all([
+    supabase.from('products').select('*').order('created_at', { ascending: false }),
+    supabase.from('store_settings').select('*').single()
+  ]);
 
-  if (error) {
-    console.error('Error fetching products (Dashboard):', JSON.stringify(error, null, 2));
+  const products = productsResult.data;
+  const settings = settingsResult.data as StoreSettings | null;
+
+  if (productsResult.error) {
+    console.error('Error fetching products (Dashboard):', JSON.stringify(productsResult.error, null, 2));
   }
 
   return (
     <div className="min-h-screen bg-secondary/30">
       <AdminHeader userEmail={user.email} />
 
-      <main className="container mx-auto py-10 px-4">
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <main className="container mx-auto py-10 px-4 space-y-8">
+        {/* Analytics Section */}
+        {settings?.analytics_embed_url && (
+          <div className="bg-card border rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="p-4 border-b bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Statistik Toko (Google Looker Studio)</h3>
+              </div>
+              <a 
+                href={settings.analytics_embed_url} 
+                target="_blank" 
+                rel="noreferrer"
+                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                Buka Layar Penuh <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <div className="relative w-full aspect-[16/9] md:aspect-[21/9] bg-muted/10">
+              <iframe 
+                src={settings.analytics_embed_url} 
+                className="absolute inset-0 w-full h-full border-0" 
+                allowFullScreen
+                title="Store Analytics"
+              ></iframe>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard Produk</h1>
             <p className="text-muted-foreground">
