@@ -23,14 +23,40 @@ export function OrderList({ initialOrders }: OrderListProps) {
 
     const handleStatusChange = async (orderId: string, newStatus: string) => {
         try {
-            const { error } = await supabase
-                .from('orders')
-                .update({ status: newStatus })
-                .eq('id', orderId);
+            // Delete order if status is 'cancelled' or 'completed' to simplify cleanup
+            if (newStatus === 'cancelled' || newStatus === 'completed') {
+                if (!confirm(`Apakah Anda yakin ingin mengubah status menjadi "${newStatus}"? Data pesanan ini akan otomatis dihapus dari daftar aktif untuk menjaga kebersihan database.`)) {
+                    return;
+                }
 
-            if (error) throw error;
+                // If 'completed', we assume the transaction is successful and data has been sent
+                // We delete the record immediately as per request "simplify cleanup"
+                
+                // First, fetch order details for audit log before deletion (optional but good practice)
+                const { data: orderData } = await supabase.from('orders').select('*, order_items(*)').eq('id', orderId).single();
 
-            setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
+                const { error } = await supabase.from('orders').delete().eq('id', orderId);
+                
+                if (error) throw error;
+
+                // Remove from local state
+                setOrders(orders.filter(o => o.id !== orderId));
+                
+                // Optional: Log to audit table (if you want to keep history of deleted successful orders)
+                // await supabase.from('audit_logs').insert({...}) 
+
+                alert(`Pesanan berhasil diubah ke status "${newStatus}" dan telah diarsipkan/dihapus.`);
+            } else {
+                // Normal update for other statuses
+                const { error } = await supabase
+                    .from('orders')
+                    .update({ status: newStatus })
+                    .eq('id', orderId);
+
+                if (error) throw error;
+
+                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as Order['status'] } : o));
+            }
         } catch (err) {
             console.error('Failed to update status:', (err as Error).message);
             alert('Gagal mengupdate status pesanan.');
@@ -45,13 +71,17 @@ export function OrderList({ initialOrders }: OrderListProps) {
         // Format WA Message
         const orderItem = selectedOrder.order_items[0];
         const productName = orderItem?.product?.name || 'Produk';
+        // Use a placeholder or actual image URL if available and accessible publicly
+        // WhatsApp doesn't support sending image files directly via URL link in 'text' parameter perfectly like an attachment,
+        // but we can include the link to the image.
+        const productImage = orderItem?.product?.image_url ? `\n\n🖼️ *Foto Produk:* ${orderItem.product.image_url}` : '';
 
-        const message = `*INVOICE LANG STR*\n\nHalo Kak!\nPesanan untuk *${productName}* (Order ID: ${selectedOrder.id}) telah berhasil diproses.\n\n*📋 Berikut adalah Detail Akun / Pesanan Anda:*\n${accountDataText}\n\nTerima kasih telah berbelanja di Lang STR! Jika ada kendala, silakan balas pesan ini.`;
+        const message = `*INVOICE LANG STR*\n\nHalo Kak!\nPesanan untuk *${productName}* (Order ID: ${selectedOrder.id}) telah berhasil diproses.${productImage}\n\n*📋 Berikut adalah Detail Akun / Pesanan Anda:*\n${accountDataText}\n\nTerima kasih telah berbelanja di Lang STR! Jika ada kendala, silakan balas pesan ini.`;
 
         const waUrl = `https://wa.me/${selectedOrder.customer_whatsapp}?text=${encodeURIComponent(message)}`;
 
         try {
-            // Mark as completed
+            // Mark as completed (and thus delete/cleanup)
             await handleStatusChange(selectedOrder.id, 'completed');
 
             // Close modal

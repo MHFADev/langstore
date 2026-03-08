@@ -49,14 +49,21 @@ export function BannerManager() {
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Validate file size (e.g. max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                setUploadError('Ukuran file terlalu besar (Maks 5MB).');
+                return;
+            }
             setSelectedFile(file);
             setPreviewUrl(URL.createObjectURL(file));
+            setUploadError('');
         }
     };
 
     const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setImageUrlInput(e.target.value);
         setPreviewUrl(e.target.value);
+        setUploadError('');
     };
 
     const handleSaveBanner = async () => {
@@ -118,7 +125,7 @@ export function BannerManager() {
 
         } catch (err: unknown) {
             console.error('Upload failed:', err);
-            setUploadError((err as Error).message || 'Gagal menyimpan banner.');
+            setUploadError(err instanceof Error ? err.message : 'Gagal menyimpan banner.');
         } finally {
             setIsUploading(false);
         }
