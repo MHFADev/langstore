@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Product } from '@/types';
 import { Loader2, Upload } from 'lucide-react';
@@ -17,21 +17,29 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
   const [name, setName] = useState(product?.name || '');
   const [price, setPrice] = useState(product?.price?.toString() || '');
   const [description, setDescription] = useState(product?.description || '');
-  const [category, setCategory] = useState(product?.category || 'Game Account');
+  const [category, setCategory] = useState(product?.category || '');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(product?.image_url || null);
   const [compressionLoading, setCompressionLoading] = useState(false);
-
-  const CATEGORIES = [
-    'Game Account',
-    'Premium App',
-    'Top Up',
-    'Joki',
-    'Other'
-  ];
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
 
   const supabase = createClient();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await supabase.from('categories').select('name');
+      if (data) {
+        const catNames = data.map(c => c.name);
+        setDbCategories(catNames);
+        // If it's a new product and we have categories, set the first one as default
+        if (!product && catNames.length > 0 && !category) {
+          setCategory(catNames[0]);
+        }
+      }
+    };
+    fetchCategories();
+  }, [supabase, product, category]);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -180,11 +188,15 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
             onChange={(e) => setCategory(e.target.value)}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
+            {dbCategories.length > 0 ? (
+              dbCategories.map((cat: string) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))
+            ) : (
+              <option value="">No categories</option>
+            )}
           </select>
         </div>
       </div>

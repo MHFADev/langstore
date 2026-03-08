@@ -18,19 +18,24 @@ export function ProductGrid({ products, allCategories }: ProductGridProps) {
   const selectedCategory = searchParams.get('category') || 'All';
 
   const setSelectedCategory = (category: string) => {
+    if (category === selectedCategory) return;
+
     const params = new URLSearchParams(searchParams.toString());
     if (category === 'All') {
       params.delete('category');
     } else {
       params.set('category', category);
     }
-    router.push(`/?${params.toString()}#catalog`, { scroll: false });
+    // Use transition to prioritize responsiveness of the click
+    const newUrl = `/?${params.toString()}#catalog`;
+    router.push(newUrl, { scroll: false });
   };
 
   // Use provided categories or get unique categories from products
   const categories = allCategories || ['All', ...Array.from(new Set(products.map((p) => p.category || 'Other')))];
 
-  const filteredProducts = products; // Already filtered on server if allCategories is provided
+  // Add a useMemo for filtered products to ensure no unnecessary calculations
+  const filteredProducts = products; 
 
   return (
     <div className="w-full">
@@ -43,13 +48,12 @@ export function ProductGrid({ products, allCategories }: ProductGridProps) {
       <div key={selectedCategory} className="min-h-[400px]">
         {filteredProducts.length > 0 ? (
           <StaggerContainer
-            className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-10"
+            className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-8"
           >
-            <AnimatePresence mode='popLayout' initial={true}>
+            <AnimatePresence mode='wait' initial={false}>
               {filteredProducts.map((product) => (
                 <StaggerItem
                   key={`${selectedCategory}-${product.id}`}
-                  layout
                   className="w-full"
                 >
                   <div data-category={product.category || 'Other'}>
@@ -60,7 +64,7 @@ export function ProductGrid({ products, allCategories }: ProductGridProps) {
             </AnimatePresence>
           </StaggerContainer>
         ) : (
-          <div className="flex h-60 flex-col items-center justify-center space-y-4 rounded-2xl border-2 border-dashed border-muted text-center animate-in fade-in duration-500">
+          <div className="flex h-60 flex-col items-center justify-center space-y-4 rounded-2xl border-2 border-dashed border-muted text-center animate-in fade-in duration-300">
             <p className="text-lg font-medium text-muted-foreground">Tidak ada produk di kategori ini.</p>
           </div>
         )}

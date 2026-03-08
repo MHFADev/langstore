@@ -47,35 +47,32 @@
 }
 
 :root {
-  /* Clean White Background */
-  --background: #ffffff;
-  /* Deep Navy for Text - WCAG AAA */
-  --foreground: #0f172a; 
+  /* Soft Off-White Background */
+  --background: #f8fafc;
+  /* Slate Dark for Text - High Contrast but softer than black */
+  --foreground: #1e293b; 
 
   /* Sky Blue Primary */
   --primary: #0ea5e9; 
   --primary-foreground: #ffffff;
 
-  /* Soft Sky Blue for Secondary/Cards */
-  --secondary: #f0f9ff; 
-  --secondary-foreground: #0369a1; /* Darker for better contrast */
+  /* White for Cards and Surfaces */
+  --secondary: #ffffff; 
+  --secondary-foreground: #0369a1; 
 
   /* Muted Text and Backgrounds */
   --muted: #f1f5f9;
-  --muted-foreground: #475569; /* Darker slate for readability */
+  --muted-foreground: #64748b; 
 
   /* Accents */
-  --accent: #e0f2fe; 
-  --accent-foreground: #0c4a6e;
-
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
+  --accent: #f1f5f9; 
+  --accent-foreground: #0f172a;
 
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0ea5e9;
 
-  --radius: 1rem; /* More rounded */
+  --radius: 1rem; 
 }
 
 .dark {
