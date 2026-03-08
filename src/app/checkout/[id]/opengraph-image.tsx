@@ -12,8 +12,8 @@ export const size = {
 export const contentType = 'image/png';
 
 // Initialize Supabase Client directly for edge runtime
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function Image({ params }: { params: { id: string } }) {
