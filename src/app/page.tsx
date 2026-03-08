@@ -4,7 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { ProductGrid } from '@/components/ui/ProductGrid';
 import { HeroCarousel } from '@/components/ui/HeroCarousel';
 import { Product, StoreSettings, Banner } from '@/types';
-import { Sparkles, Gamepad2, ShieldCheck, Zap } from 'lucide-react';
+import { Sparkles, Gamepad2, ShieldCheck, Zap, MessageCircle } from 'lucide-react';
 import { FramerWrapper } from '@/components/ui/FramerWrapper';
 
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -132,6 +132,23 @@ export default async function Home() {
       </main>
 
       <Footer settings={settings} />
+
+      {/* Floating WhatsApp Channel Button */}
+      {settings?.whatsapp_channel_url && (
+        <a
+          href={settings.whatsapp_channel_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-green-500/30 transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:shadow-xl hover:shadow-green-500/50 group"
+          aria-label="Join WhatsApp Channel"
+        >
+          <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:animate-ping"></div>
+          <MessageCircle className="h-7 w-7" />
+          <span className="absolute right-full mr-3 hidden whitespace-nowrap rounded-lg bg-background px-3 py-1.5 text-xs font-medium text-foreground shadow-md group-hover:block animate-in slide-in-from-right-2">
+            Join Channel WA
+          </span>
+        </a>
+      )}
     </div>
   );
 }

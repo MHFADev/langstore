@@ -57,14 +57,14 @@ export async function generateMetadata(
         openGraph: {
             title: productTitle,
             description: productDescription,
-            // images: handled by opengraph-image.tsx
+            images: product.image_url ? [product.image_url] : [],
             type: 'website',
         },
         twitter: {
             card: 'summary_large_image',
             title: productTitle,
             description: productDescription,
-            // images: handled by opengraph-image.tsx
+            images: product.image_url ? [product.image_url] : [],
         },
     };
 }

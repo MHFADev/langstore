@@ -34,6 +34,7 @@ export interface StoreSettings {
   google_search_console_id?: string;
   canonical_url?: string;
   analytics_embed_url?: string;
+  whatsapp_channel_url?: string;
 }
 
 export interface Banner {

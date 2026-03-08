@@ -22,6 +22,7 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         payment_dana_number: initialSettings?.payment_dana_number || '',
         payment_gopay_number: initialSettings?.payment_gopay_number || '',
         whatsapp_number_admin: initialSettings?.whatsapp_number_admin || '',
+        whatsapp_channel_url: initialSettings?.whatsapp_channel_url || '',
         
         // SEO & General
         site_title: initialSettings?.site_title || '',
@@ -472,6 +473,18 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                                     placeholder="628..."
                                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 />
+                            </div>
+                            <div className="space-y-2 mt-2">
+                                <label className="text-sm font-medium">URL Channel WhatsApp</label>
+                                <input
+                                    type="url"
+                                    name="whatsapp_channel_url"
+                                    value={formData.whatsapp_channel_url || ''}
+                                    onChange={handleChange}
+                                    placeholder="https://whatsapp.com/channel/..."
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">Floating button di homepage akan mengarah ke link ini.</p>
                             </div>
                         </div>
                     </div>
