@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { StoreSettingsForm } from '@/components/admin/StoreSettingsForm';
+import { BannerManager } from '@/components/admin/BannerManager';
 import { StoreSettings } from '@/types';
 import { redirect } from 'next/navigation';
 
@@ -38,7 +39,8 @@ export default async function PaymentSettingsPage() {
                     </p>
                 </div>
 
-                <div className="lg:max-w-4xl">
+                <div className="lg:max-w-4xl space-y-10">
+                    <BannerManager />
                     <StoreSettingsForm initialSettings={(storeSettings as StoreSettings) || null} />
                 </div>
             </main>

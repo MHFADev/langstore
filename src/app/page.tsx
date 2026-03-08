@@ -1,23 +1,26 @@
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { ProductGrid } from '@/components/ui/ProductGrid';
-import { Product, StoreSettings } from '@/types';
+import { HeroCarousel } from '@/components/ui/HeroCarousel';
+import { Product, StoreSettings, Banner } from '@/types';
 import { Sparkles, Gamepad2, ShieldCheck, Zap } from 'lucide-react';
-import Image from 'next/image';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function Home() {
   const supabase = await createClient();
   
-  const [productsResult, settingsResult] = await Promise.all([
+  const [productsResult, settingsResult, bannersResult] = await Promise.all([
     supabase.from('products').select('*').order('created_at', { ascending: false }),
-    supabase.from('store_settings').select('*').single()
+    supabase.from('store_settings').select('*').single(),
+    supabase.from('banners').select('*').eq('is_active', true).order('sort_order', { ascending: true })
   ]);
 
   const products = productsResult.data;
   const error = productsResult.error;
   const settings = settingsResult.data as StoreSettings | null;
+  const banners = (bannersResult.data || []) as Banner[];
 
   if (error) {
     console.error('Error fetching products (Home):', JSON.stringify(error, null, 2));
@@ -28,8 +31,6 @@ export default async function Home() {
     ...p,
     category: p.category || 'Game Account' // Default fallback
   })) || [];
-
-  const showCustomBanner = settings?.banner_active && settings?.banner_url;
 
   return (
     <div className="flex min-h-screen flex-col bg-background selection:bg-primary/20">
@@ -76,19 +77,10 @@ export default async function Home() {
             </a>
           </div>
 
-          {/* New Banner Position: Below Title & CTA */}
-          {showCustomBanner && settings?.banner_url && (
-             <div className="mt-16 mx-auto max-w-5xl rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 relative aspect-[16/9] md:aspect-[2.5/1] animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                <Image 
-                  src={settings.banner_url} 
-                  alt={settings.banner_title || 'Hero Banner'} 
-                  fill 
-                  className="object-cover hover:scale-105 transition-transform duration-700"
-                  priority
-                  quality={95}
-                />
-                {/* Optional: Subtle gradient overlay on banner itself */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+          {/* Dynamic Banner Carousel */}
+          {banners.length > 0 && (
+             <div className="mt-16 mx-auto max-w-5xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                <HeroCarousel banners={banners} />
              </div>
           )}
 
@@ -134,22 +126,7 @@ export default async function Home() {
         )}
       </main>
 
-      <footer className="border-t border-primary/10 bg-secondary/30 py-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none"></div>
-        <div className="container relative mx-auto flex flex-col items-center justify-between gap-6 md:flex-row px-4 md:px-8 z-10">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg font-[family-name:var(--font-space-grotesk)]">LANG STR</span>
-            <span className="text-sm font-medium text-muted-foreground">
-              &copy; {new Date().getFullYear()} All rights reserved.
-            </span>
-          </div>
-          <div className="flex gap-6">
-            <span className="text-sm font-medium text-muted-foreground hover:text-primary cursor-pointer transition-colors">Instagram</span>
-            <span className="text-sm font-medium text-muted-foreground hover:text-primary cursor-pointer transition-colors">Tiktok</span>
-            <span className="text-sm font-medium text-muted-foreground hover:text-primary cursor-pointer transition-colors">WhatsApp</span>
-          </div>
-        </div>
-      </footer>
+      <Footer settings={settings} />
     </div>
   );
 }
