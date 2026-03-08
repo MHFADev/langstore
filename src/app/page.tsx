@@ -58,8 +58,8 @@ export default async function Home() {
           </div>
 
           <h1 className="mx-auto max-w-4xl text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl md:text-7xl font-[family-name:var(--font-space-grotesk)] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 drop-shadow-sm">
-            {settings?.banner_title ? (
-              settings.banner_title
+            {settings?.site_title ? (
+              settings.site_title
             ) : (
               <>
                 LangSTR
@@ -68,7 +68,7 @@ export default async function Home() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl leading-relaxed mb-10 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-150 drop-shadow-sm">
-            {settings?.banner_description || "Marketplace Terpercaya untuk Jual Beli Akun Game, Nokos, dan Aplikasi Premium dengan Aman dan Cepat."}
+            {settings?.site_description || "Marketplace Terpercaya untuk Jual Beli Akun Game, Nokos, dan Aplikasi Premium dengan Aman dan Cepat."}
           </p>
 
           <div className="flex justify-center gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">

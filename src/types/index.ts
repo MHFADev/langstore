@@ -33,11 +33,6 @@ export interface StoreSettings {
   google_analytics_id?: string;
   google_search_console_id?: string;
   canonical_url?: string;
-  // Banner Settings (Legacy/Single)
-  banner_url?: string;
-  banner_title?: string;
-  banner_description?: string;
-  banner_active?: boolean;
 }
 
 export interface Banner {
