@@ -104,6 +104,7 @@ export const viewport: Viewport = {
 };
 
 import { ThemeProvider } from "@/components/layout/ThemeProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 export default async function RootLayout({
   children,
@@ -147,6 +148,7 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Analytics />
         </ThemeProvider>
         
         {/* Schema.org JSON-LD */}
