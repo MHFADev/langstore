@@ -47,8 +47,10 @@
 }
 
 :root {
-  /* Soft Off-White Background */
+  /* Soft Gradient Base: Light Blue to Deep Slate/Black */
   --background: #f8fafc;
+  --background-gradient: linear-gradient(135deg, #e0f2fe 0%, #f8fafc 40%, #0f172a 100%);
+  
   /* Slate Dark for Text - High Contrast but softer than black */
   --foreground: #1e293b; 
 
@@ -56,8 +58,8 @@
   --primary: #0ea5e9; 
   --primary-foreground: #ffffff;
 
-  /* White for Cards and Surfaces */
-  --secondary: #ffffff; 
+  /* White for Cards and Surfaces with slight transparency */
+  --secondary: rgba(255, 255, 255, 0.8); 
   --secondary-foreground: #0369a1; 
 
   /* Muted Text and Backgrounds */
@@ -73,6 +75,14 @@
   --ring: #0ea5e9;
 
   --radius: 1rem; 
+}
+
+@layer base {
+  body {
+    background: var(--background-gradient);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
 }
 
 .dark {

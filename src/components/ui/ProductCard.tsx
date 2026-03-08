@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
       onMouseMove={handleMouseMove}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/5 backdrop-blur-sm text-card-foreground shadow-lg hover:shadow-2xl transition-all duration-500"
+      className="group relative flex flex-col h-full rounded-3xl border border-white/20 bg-white/40 backdrop-blur-md transition-all hover:bg-white/60 hover:shadow-2xl hover:shadow-primary/10 overflow-hidden"
     >
       {/* Shine Effect */}
       <motion.div

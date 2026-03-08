@@ -18,7 +18,7 @@ export function CategoryFilter({
   const uniqueCategories = Array.from(new Set(categories));
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+    <div className="flex flex-wrap items-center justify-center gap-2 mb-10 p-2 rounded-full bg-white/30 backdrop-blur-md border border-white/20 w-fit mx-auto shadow-sm">
       {uniqueCategories.map((category) => (
         <button
           key={category}
