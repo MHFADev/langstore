@@ -75,13 +75,13 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: title.split('|')[0].trim(),
       locale: 'id_ID',
       type: 'website',
-      // Images will be automatically handled by opengraph-image.tsx
+      images: settings?.site_meta_image ? [settings.site_meta_image] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      // Images will be automatically handled by twitter-image.tsx
+      images: settings?.site_meta_image ? [settings.site_meta_image] : undefined,
     },
     icons: {
       icon: settings?.favicon_url || '/favicon.ico',

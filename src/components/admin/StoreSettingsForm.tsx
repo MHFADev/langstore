@@ -31,13 +31,16 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         google_search_console_id: initialSettings?.google_search_console_id || '',
         canonical_url: initialSettings?.canonical_url || '',
         favicon_url: initialSettings?.favicon_url || '',
+        site_meta_image: initialSettings?.site_meta_image || '',
         analytics_embed_url: initialSettings?.analytics_embed_url || '',
     });
 
     const [isLoading, setIsLoading] = useState(false);
     const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
+    const [isUploadingOG, setIsUploadingOG] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const faviconInputRef = useRef<HTMLInputElement>(null);
+    const ogImageInputRef = useRef<HTMLInputElement>(null);
 
     const supabase = createClient();
 
@@ -83,6 +86,35 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         } finally {
             setIsUploadingFavicon(false);
             if (faviconInputRef.current) faviconInputRef.current.value = '';
+        }
+    };
+
+    const handleOGImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingOG(true);
+        try {
+            // Use WebP compression
+            const compressedFile = await compressAndConvertToWebP(file);
+            
+            const fileName = `og_image_${Date.now()}.webp`;
+            const { error: uploadError } = await supabase.storage
+                .from('settings')
+                .upload(fileName, compressedFile, { contentType: 'image/webp', cacheControl: '3600', upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage.from('settings').getPublicUrl(fileName);
+            
+            setFormData(prev => ({ ...prev, site_meta_image: publicUrl }));
+            setMessage({ type: 'success', text: 'OG Image berhasil diupload!' });
+        } catch (error) {
+            console.error('Error uploading OG Image:', error);
+            setMessage({ type: 'error', text: 'Gagal mengupload OG Image.' });
+        } finally {
+            setIsUploadingOG(false);
+            if (ogImageInputRef.current) ogImageInputRef.current.value = '';
         }
     };
 
@@ -202,6 +234,64 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                                         className="h-10 w-10 object-contain"
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=?';
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 pt-4 border-t">
+                        <label className="text-sm font-medium">OG Image (Thumbnail Share Link)</label>
+                        <div className="flex items-start gap-4">
+                            <div className="flex-1 space-y-2">
+                                <input
+                                    type="url"
+                                    name="site_meta_image"
+                                    value={formData.site_meta_image || ''}
+                                    onChange={handleChange}
+                                    placeholder="https://example.com/og-image.jpg"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => ogImageInputRef.current?.click()}
+                                        disabled={isUploadingOG}
+                                        className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-3"
+                                    >
+                                        {isUploadingOG ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="mr-2 h-3 w-3" />
+                                                Upload OG Image
+                                            </>
+                                        )}
+                                    </button>
+                                    <input 
+                                        type="file" 
+                                        ref={ogImageInputRef}
+                                        onChange={handleOGImageUpload}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Rekomendasi: 1200x630px.</p>
+                                </div>
+                            </div>
+                            
+                            {formData.site_meta_image && (
+                                <div className="relative h-20 w-32 shrink-0 rounded-md border bg-muted flex items-center justify-center overflow-hidden">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={formData.site_meta_image}
+                                        alt="OG Preview"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://placehold.co/1200x630?text=Invalid';
                                         }}
                                     />
                                 </div>

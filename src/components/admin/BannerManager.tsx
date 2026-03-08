@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Banner } from '@/types';
-import { Loader2, Plus, Trash2, Edit, ImageIcon, MoveUp, MoveDown, Check, X, Upload } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit, ImageIcon, MoveUp, MoveDown, Check, X, Upload, Globe } from 'lucide-react';
 import { compressAndConvertToWebP } from '@/lib/imageUtils';
 import Image from 'next/image';
 
@@ -22,6 +22,11 @@ export function BannerManager() {
     const [imageUrlInput, setImageUrlInput] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    
+    // Promo Link State
+    const [isPromo, setIsPromo] = useState(false);
+    const [promoLink, setPromoLink] = useState('');
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const supabase = createClient();
@@ -105,6 +110,7 @@ export function BannerManager() {
                     image_url: finalImageUrl,
                     title: newBannerTitle,
                     description: newBannerDesc,
+                    link_url: isPromo ? promoLink : null,
                     is_active: true,
                     sort_order: banners.length
                 });
@@ -114,6 +120,8 @@ export function BannerManager() {
             // Reset form
             setNewBannerTitle('');
             setNewBannerDesc('');
+            setPromoLink('');
+            setIsPromo(false);
             setSelectedFile(null);
             setImageUrlInput('');
             setPreviewUrl(null);
@@ -208,6 +216,38 @@ export function BannerManager() {
                                             onChange={(e) => setNewBannerDesc(e.target.value)}
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                         />
+                                    </div>
+                                    
+                                    {/* Promo Link Toggle */}
+                                    <div className="pt-2 space-y-3 border-t border-border/50">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-medium text-foreground">Jadikan Banner Promo?</label>
+                                            <button
+                                                onClick={() => setIsPromo(!isPromo)}
+                                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${isPromo ? 'bg-primary' : 'bg-muted'}`}
+                                            >
+                                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPromo ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                        
+                                        {isPromo && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                                <label className="text-xs font-medium text-muted-foreground">Link Tujuan (URL)</label>
+                                                <div className="relative">
+                                                    <input
+                                                        type="url"
+                                                        placeholder="https://..."
+                                                        value={promoLink}
+                                                        onChange={(e) => setPromoLink(e.target.value)}
+                                                        className="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                    />
+                                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                                        <Globe className="w-4 h-4" />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground">Tombol &quot;Lihat Promo&quot; akan muncul di banner ini.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

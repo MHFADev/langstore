@@ -3,7 +3,17 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Order, OrderItem } from '@/types';
-import { Check, Clock, Send, X, ExternalLink } from 'lucide-react';
+import { Check, Clock, Send, X, ExternalLink, AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface OrderWithItems extends Order {
     order_items: OrderItem[];
@@ -18,45 +28,57 @@ export function OrderList({ initialOrders }: OrderListProps) {
     const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
     const [accountDataText, setAccountDataText] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
+    
+    // Alert Dialog State
+    const [alertOpen, setAlertOpen] = useState(false);
+    const [alertConfig, setAlertConfig] = useState<{
+        title: string;
+        description: string;
+        action: () => Promise<void>;
+        actionLabel: string;
+        isDestructive?: boolean;
+    } | null>(null);
 
     const supabase = createClient();
 
-    const handleStatusChange = async (orderId: string, newStatus: string) => {
-        try {
-            // Delete order if status is 'cancelled' or 'completed' to simplify cleanup
-            if (newStatus === 'cancelled' || newStatus === 'completed') {
-                if (!confirm(`Apakah Anda yakin ingin mengubah status menjadi "${newStatus}"? Data pesanan ini akan otomatis dihapus dari daftar aktif untuk menjaga kebersihan database.`)) {
-                    return;
+    const handleStatusChange = (orderId: string, newStatus: string) => {
+        // Delete order if status is 'cancelled' or 'completed' to simplify cleanup
+        if (newStatus === 'cancelled' || newStatus === 'completed') {
+            setAlertConfig({
+                title: `Ubah status ke "${newStatus === 'cancelled' ? 'Dibatalkan' : 'Selesai'}"?`,
+                description: "Data pesanan ini akan otomatis dihapus dari daftar aktif untuk menjaga kebersihan database. Pastikan transaksi sudah selesai atau benar-benar dibatalkan.",
+                actionLabel: "Ya, Lanjutkan",
+                isDestructive: newStatus === 'cancelled',
+                action: async () => {
+                    try {
+                        const { error } = await supabase.from('orders').delete().eq('id', orderId);
+                        if (error) throw error;
+                        setOrders(orders.filter(o => o.id !== orderId));
+                    } catch (err) {
+                        console.error('Failed to delete order:', err);
+                        alert('Gagal menghapus pesanan.');
+                    }
                 }
+            });
+            setAlertOpen(true);
+        } else {
+            // Normal update for other statuses without confirmation dialog (or maybe simple one)
+            // But let's confirm 'paid' status too for consistency if needed, but usually only destructive actions need confirm.
+            // For now, execute immediately for 'paid'
+            executeStatusUpdate(orderId, newStatus);
+        }
+    };
 
-                // If 'completed', we assume the transaction is successful and data has been sent
-                // We delete the record immediately as per request "simplify cleanup"
-                
-                // First, fetch order details for audit log before deletion (optional but good practice)
-                const { data: orderData } = await supabase.from('orders').select('*, order_items(*)').eq('id', orderId).single();
+    const executeStatusUpdate = async (orderId: string, newStatus: string) => {
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ status: newStatus })
+                .eq('id', orderId);
 
-                const { error } = await supabase.from('orders').delete().eq('id', orderId);
-                
-                if (error) throw error;
+            if (error) throw error;
 
-                // Remove from local state
-                setOrders(orders.filter(o => o.id !== orderId));
-                
-                // Optional: Log to audit table (if you want to keep history of deleted successful orders)
-                // await supabase.from('audit_logs').insert({...}) 
-
-                alert(`Pesanan berhasil diubah ke status "${newStatus}" dan telah diarsipkan/dihapus.`);
-            } else {
-                // Normal update for other statuses
-                const { error } = await supabase
-                    .from('orders')
-                    .update({ status: newStatus })
-                    .eq('id', orderId);
-
-                if (error) throw error;
-
-                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as Order['status'] } : o));
-            }
+            setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
         } catch (err) {
             console.error('Failed to update status:', (err as Error).message);
             alert('Gagal mengupdate status pesanan.');
@@ -71,9 +93,6 @@ export function OrderList({ initialOrders }: OrderListProps) {
         // Format WA Message
         const orderItem = selectedOrder.order_items[0];
         const productName = orderItem?.product?.name || 'Produk';
-        // Use a placeholder or actual image URL if available and accessible publicly
-        // WhatsApp doesn't support sending image files directly via URL link in 'text' parameter perfectly like an attachment,
-        // but we can include the link to the image.
         const productImage = orderItem?.product?.image_url ? `\n\n🖼️ *Foto Produk:* ${orderItem.product.image_url}` : '';
 
         const message = `*INVOICE LANG STR*\n\nHalo Kak!\nPesanan untuk *${productName}* (Order ID: ${selectedOrder.id}) telah berhasil diproses.${productImage}\n\n*📋 Berikut adalah Detail Akun / Pesanan Anda:*\n${accountDataText}\n\nTerima kasih telah berbelanja di Lang STR! Jika ada kendala, silakan balas pesan ini.`;
@@ -81,8 +100,10 @@ export function OrderList({ initialOrders }: OrderListProps) {
         const waUrl = `https://wa.me/${selectedOrder.customer_whatsapp}?text=${encodeURIComponent(message)}`;
 
         try {
-            // Mark as completed (and thus delete/cleanup)
-            await handleStatusChange(selectedOrder.id, 'completed');
+            // Mark as completed (and thus delete/cleanup) - we do this directly without confirm dialog here as it is part of the flow
+            const { error } = await supabase.from('orders').delete().eq('id', selectedOrder.id);
+            if (error) throw error;
+            setOrders(orders.filter(o => o.id !== selectedOrder.id));
 
             // Close modal
             setSelectedOrder(null);
@@ -92,6 +113,7 @@ export function OrderList({ initialOrders }: OrderListProps) {
             window.open(waUrl, '_blank');
         } catch (err) {
             console.error('Error in send WA flow:', (err as Error).message);
+            alert('Gagal memproses data. Coba lagi.');
         } finally {
             setIsUpdating(false);
         }
@@ -265,6 +287,37 @@ export function OrderList({ initialOrders }: OrderListProps) {
                     </div>
                 </div>
             )}
+
+            {/* Confirmation Alert Dialog */}
+            <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+                <AlertDialogContent className="rounded-2xl border-primary/20 bg-card">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                            {alertConfig?.isDestructive ? (
+                                <AlertCircle className="w-5 h-5 text-red-500" />
+                            ) : (
+                                <Check className="w-5 h-5 text-green-500" />
+                            )}
+                            {alertConfig?.title}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {alertConfig?.description}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl border-0 bg-secondary hover:bg-secondary/80">Batal</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={() => {
+                                alertConfig?.action();
+                                setAlertOpen(false);
+                            }}
+                            className={`rounded-xl ${alertConfig?.isDestructive ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-primary/90'}`}
+                        >
+                            {alertConfig?.actionLabel}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
