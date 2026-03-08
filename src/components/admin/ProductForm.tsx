@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Product } from '@/types';
 import { Loader2, Upload } from 'lucide-react';
 import Image from 'next/image';
-import imageCompression from 'browser-image-compression';
+import { compressAndConvertToWebP } from '@/lib/imageUtils';
 
 interface ProductFormProps {
   product?: Product | null;
@@ -39,25 +39,12 @@ export function ProductForm({ product, onSuccess, onCancel }: ProductFormProps) 
       setCompressionLoading(true);
 
       try {
-        const options = {
-          maxSizeMB: 0.5, // Maksimal 500KB
-          maxWidthOrHeight: 1024, // Maksimal dimensi 1024px
-          useWebWorker: true,
-          fileType: 'image/webp', // Konversi ke WebP
-        };
-
-        const compressedFile = await imageCompression(file, options);
-        // Buat file baru dengan ekstensi .webp
-        const newFile = new File([compressedFile], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
-          type: 'image/webp',
-          lastModified: Date.now(),
-        });
-
+        const newFile = await compressAndConvertToWebP(file);
         setImageFile(newFile);
         setPreviewUrl(URL.createObjectURL(newFile));
       } catch (error) {
         console.error('Error compressing image:', error);
-        alert('Gagal memproses gambar. Silakan coba lagi.');
+        alert(error instanceof Error ? error.message : 'Gagal memproses gambar. Silakan coba lagi.');
       } finally {
         setCompressionLoading(false);
       }

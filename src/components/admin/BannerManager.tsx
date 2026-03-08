@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Banner } from '@/types';
 import { Loader2, Plus, Trash2, Edit, ImageIcon, MoveUp, MoveDown, Check, X, Upload } from 'lucide-react';
-import imageCompression from 'browser-image-compression';
+import { compressAndConvertToWebP } from '@/lib/imageUtils';
 import Image from 'next/image';
 
 export function BannerManager() {
@@ -18,6 +18,8 @@ export function BannerManager() {
     // New Banner Form State
     const [newBannerTitle, setNewBannerTitle] = useState('');
     const [newBannerDesc, setNewBannerDesc] = useState('');
+    const [inputType, setInputType] = useState<'upload' | 'url'>('upload');
+    const [imageUrlInput, setImageUrlInput] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,43 +54,48 @@ export function BannerManager() {
         }
     };
 
+    const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setImageUrlInput(e.target.value);
+        setPreviewUrl(e.target.value);
+    };
+
     const handleSaveBanner = async () => {
-        if (!selectedFile) {
+        if (inputType === 'upload' && !selectedFile) {
             setUploadError('Pilih gambar banner terlebih dahulu.');
             return;
+        }
+
+        if (inputType === 'url' && !imageUrlInput) {
+             setUploadError('Masukkan URL gambar terlebih dahulu.');
+             return;
         }
 
         setIsUploading(true);
         setUploadError('');
 
         try {
-            // Validate & Compress
-            if (!['image/jpeg', 'image/png', 'image/webp'].includes(selectedFile.type)) {
-                throw new Error('Format file harus JPG, PNG, atau WEBP.');
+            let finalImageUrl = imageUrlInput;
+
+            if (inputType === 'upload' && selectedFile) {
+                const compressedFile = await compressAndConvertToWebP(selectedFile);
+
+                // Upload
+                const fileName = `banner_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
+                const { error: uploadError } = await supabase.storage
+                    .from('settings')
+                    .upload(fileName, compressedFile, { contentType: 'image/webp', cacheControl: '3600', upsert: false });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage.from('settings').getPublicUrl(fileName);
+                finalImageUrl = publicUrl;
             }
-
-            const options = {
-                maxSizeMB: 1,
-                maxWidthOrHeight: 1920,
-                useWebWorker: true,
-            };
-            const compressedFile = await imageCompression(selectedFile, options);
-
-            // Upload
-            const fileName = `banner_${Date.now()}_${Math.random().toString(36).substring(7)}.${selectedFile.type.split('/')[1]}`;
-            const { error: uploadError } = await supabase.storage
-                .from('settings')
-                .upload(fileName, compressedFile, { cacheControl: '3600', upsert: false });
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage.from('settings').getPublicUrl(fileName);
 
             // Insert into DB
             const { error: dbError } = await supabase
                 .from('banners')
                 .insert({
-                    image_url: publicUrl,
+                    image_url: finalImageUrl,
                     title: newBannerTitle,
                     description: newBannerDesc,
                     is_active: true,
@@ -101,6 +108,7 @@ export function BannerManager() {
             setNewBannerTitle('');
             setNewBannerDesc('');
             setSelectedFile(null);
+            setImageUrlInput('');
             setPreviewUrl(null);
             setIsFormOpen(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -198,31 +206,76 @@ export function BannerManager() {
 
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-muted-foreground">Gambar Banner</label>
-                                    <div 
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="relative w-full aspect-[2/1] border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden group"
-                                    >
-                                        {previewUrl ? (
-                                            <>
-                                                <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <span className="text-white text-xs font-medium bg-black/50 px-3 py-1 rounded-full">Ganti Gambar</span>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="text-center p-4">
-                                                <Upload className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-                                                <p className="text-xs text-muted-foreground">Klik untuk upload</p>
-                                            </div>
-                                        )}
+                                    
+                                    {/* Input Type Toggle */}
+                                    <div className="flex p-1 bg-muted rounded-lg mb-4">
+                                        <button
+                                            onClick={() => { setInputType('upload'); setPreviewUrl(null); setSelectedFile(null); }}
+                                            className={`flex-1 text-xs py-1.5 rounded-md transition-all ${inputType === 'upload' ? 'bg-background shadow-sm text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                        >
+                                            Upload File
+                                        </button>
+                                        <button
+                                            onClick={() => { setInputType('url'); setPreviewUrl(null); setImageUrlInput(''); }}
+                                            className={`flex-1 text-xs py-1.5 rounded-md transition-all ${inputType === 'url' ? 'bg-background shadow-sm text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
+                                        >
+                                            URL Gambar
+                                        </button>
                                     </div>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        onChange={handleFileSelect}
-                                        accept="image/*"
-                                        className="hidden"
-                                    />
+
+                                    {inputType === 'upload' ? (
+                                        <>
+                                            <div 
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="relative w-full aspect-[2/1] border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden group"
+                                            >
+                                                {previewUrl ? (
+                                                    <>
+                                                        <Image src={previewUrl} alt="Preview" fill className="object-cover" />
+                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-white text-xs font-medium bg-black/50 px-3 py-1 rounded-full">Ganti Gambar</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-center p-4">
+                                                        <Upload className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                                                        <p className="text-xs text-muted-foreground">Klik untuk upload</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileSelect}
+                                                accept="image/*"
+                                                className="hidden"
+                                            />
+                                        </>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <input
+                                                type="url"
+                                                placeholder="https://example.com/image.jpg"
+                                                value={imageUrlInput}
+                                                onChange={handleUrlChange}
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            />
+                                            
+                                            {previewUrl && (
+                                                <div className="relative w-full aspect-[2/1] rounded-lg overflow-hidden border bg-muted">
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img 
+                                                        src={previewUrl} 
+                                                        alt="Preview" 
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Invalid+URL';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             
@@ -237,7 +290,7 @@ export function BannerManager() {
                                 </button>
                                 <button
                                     onClick={handleSaveBanner}
-                                    disabled={isUploading || !selectedFile}
+                                    disabled={isUploading || (inputType === 'upload' ? !selectedFile : !imageUrlInput)}
                                     className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}

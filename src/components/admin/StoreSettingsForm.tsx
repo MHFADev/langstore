@@ -4,7 +4,8 @@ import { useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { StoreSettings } from '@/types';
 import { Save, Loader2, Globe, Image as ImageIcon, Search, BarChart, Bell, CreditCard, Upload, Check } from 'lucide-react';
-import imageCompression from 'browser-image-compression';
+import { compressAndConvertToWebP } from '@/lib/imageUtils';
+import Image from 'next/image';
 
 interface StoreSettingsFormProps {
     initialSettings: StoreSettings | null;
@@ -34,7 +35,9 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
     });
 
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const faviconInputRef = useRef<HTMLInputElement>(null);
 
     const supabase = createClient();
 
@@ -53,6 +56,34 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
         }
 
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingFavicon(true);
+        try {
+            const compressedFile = await compressAndConvertToWebP(file);
+            
+            const fileName = `favicon_${Date.now()}.webp`;
+            const { error: uploadError } = await supabase.storage
+                .from('settings')
+                .upload(fileName, compressedFile, { contentType: 'image/webp', cacheControl: '3600', upsert: false });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage.from('settings').getPublicUrl(fileName);
+            
+            setFormData(prev => ({ ...prev, favicon_url: publicUrl }));
+            setMessage({ type: 'success', text: 'Favicon berhasil diupload! Jangan lupa simpan pengaturan.' });
+        } catch (error) {
+            console.error('Error uploading favicon:', error);
+            setMessage({ type: 'error', text: 'Gagal mengupload favicon.' });
+        } finally {
+            setIsUploadingFavicon(false);
+            if (faviconInputRef.current) faviconInputRef.current.value = '';
+        }
     };
 
     const handleSave = async () => {
@@ -117,6 +148,64 @@ export function StoreSettingsForm({ initialSettings }: StoreSettingsFormProps) {
                                 placeholder="https://langstr.id"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             />
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">URL Favicon</label>
+                        <div className="flex items-start gap-4">
+                            <div className="flex-1 space-y-2">
+                                <input
+                                    type="url"
+                                    name="favicon_url"
+                                    value={formData.favicon_url}
+                                    onChange={handleChange}
+                                    placeholder="https://example.com/favicon.ico"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => faviconInputRef.current?.click()}
+                                        disabled={isUploadingFavicon}
+                                        className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-3"
+                                    >
+                                        {isUploadingFavicon ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="mr-2 h-3 w-3" />
+                                                Upload Gambar
+                                            </>
+                                        )}
+                                    </button>
+                                    <input 
+                                        type="file" 
+                                        ref={faviconInputRef}
+                                        onChange={handleFaviconUpload}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Otomatis convert ke WebP (Max 500KB).</p>
+                                </div>
+                            </div>
+                            
+                            {formData.favicon_url && (
+                                <div className="relative h-16 w-16 shrink-0 rounded-md border bg-muted flex items-center justify-center overflow-hidden">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={formData.favicon_url}
+                                        alt="Favicon Preview"
+                                        className="h-10 w-10 object-contain"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=?';
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 

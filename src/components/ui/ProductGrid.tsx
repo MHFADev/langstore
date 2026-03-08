@@ -5,6 +5,7 @@ import { Product } from '@/types';
 import { ProductCard } from '@/components/ui/ProductCard';
 import { CategoryFilter } from '@/components/ui/CategoryFilter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { StaggerContainer, StaggerItem } from '@/components/ui/FramerWrapper';
 
 interface ProductGridProps {
   products: Product[];
@@ -29,25 +30,20 @@ export function ProductGrid({ products }: ProductGridProps) {
       />
 
       {filteredProducts.length > 0 ? (
-        <motion.div 
-          layout
+        <StaggerContainer
           className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-10"
         >
-          <AnimatePresence>
+          <AnimatePresence mode='popLayout'>
             {filteredProducts.map((product) => (
-              <motion.div
-                layout
+              <StaggerItem
                 key={product.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
+                layout
               >
                 <ProductCard product={product} />
-              </motion.div>
+              </StaggerItem>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </StaggerContainer>
       ) : (
         <div className="flex h-60 flex-col items-center justify-center space-y-4 rounded-2xl border-2 border-dashed border-muted text-center">
           <p className="text-lg font-medium text-muted-foreground">Tidak ada produk di kategori ini.</p>

@@ -5,6 +5,7 @@ import { ProductGrid } from '@/components/ui/ProductGrid';
 import { HeroCarousel } from '@/components/ui/HeroCarousel';
 import { Product, StoreSettings, Banner } from '@/types';
 import { Sparkles, Gamepad2, ShieldCheck, Zap } from 'lucide-react';
+import { FramerWrapper } from '@/components/ui/FramerWrapper';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -79,12 +80,16 @@ export default async function Home() {
 
           {/* Dynamic Banner Carousel */}
           {banners.length > 0 && (
-             <div className="mt-16 mx-auto max-w-5xl animate-in fade-in slide-in-from-bottom-8 duration-1000">
+             <FramerWrapper y={50} delay={0.8} className="mt-16 mx-auto max-w-5xl">
                 <HeroCarousel banners={banners} />
-             </div>
+             </FramerWrapper>
           )}
 
-          <div className="mt-16 pt-8 border-t border-border/50 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 animate-in fade-in duration-1000 delay-500">
+          <FramerWrapper 
+            y={20} 
+            delay={1} 
+            className="mt-16 pt-8 border-t border-border/50 flex flex-wrap justify-center gap-8 md:gap-16 opacity-70"
+          >
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <ShieldCheck className="w-5 h-5 text-primary" />
               100% Aman & Legal
@@ -97,7 +102,7 @@ export default async function Home() {
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M12 2v20" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
               Harga Bersaing
             </div>
-          </div>
+          </FramerWrapper>
         </div>
       </div>
 
@@ -105,24 +110,24 @@ export default async function Home() {
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-secondary/50 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
 
-        <div className="mb-14 text-center">
+        <FramerWrapper y={30} className="mb-14 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-[family-name:var(--font-space-grotesk)]">
             Katalog Premium
           </h2>
           <p className="mt-4 text-muted-foreground">
             Pilih kategori dan temukan produk digital incaranmu hari ini.
           </p>
-        </div>
+        </FramerWrapper>
 
         {processedProducts.length > 0 ? (
           <ProductGrid products={processedProducts} />
         ) : (
-          <div className="flex h-80 flex-col items-center justify-center space-y-4 rounded-3xl border border-dashed border-primary/20 bg-secondary/30 text-center animate-in fade-in zoom-in-95 duration-500">
+          <FramerWrapper scale={0.9} className="flex h-80 flex-col items-center justify-center space-y-4 rounded-3xl border border-dashed border-primary/20 bg-secondary/30 text-center">
             <div className="rounded-2xl bg-primary/10 p-4">
               <Sparkles className="w-10 h-10 text-primary" />
             </div>
             <p className="text-lg font-medium text-muted-foreground">Katalog masih kosong, admin sedang menyiapkan produk terbaik.</p>
-          </div>
+          </FramerWrapper>
         )}
       </main>
 
